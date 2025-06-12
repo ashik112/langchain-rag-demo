@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Q&A System</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <main>
+    <h1>Document Q&A System</h1>
+    <div class="chat-container">
+      <div class="chat-history" id="chatHistory">
+        <!-- Chat messages will appear here -->
+      </div>
+      <form class="prompt-box">
+        <label>
+          <input name="prompt" placeholder="Ask a question about your documents..." type="text">
+        </label>
+        <button type="submit">Ask</button>
+      </form>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/markdown-it@8.4.2/dist/markdown-it.min.js"></script>
+  <script type="module" src="/main.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,93 @@
+## Income Tax Return Filing Rules – Bangladesh FY 2024–25
+
+### Tax Year & Deadlines
+- **Income Year:** 1 July 2024 – 30 June 2025.
+- **Normal Due Date:** 30 November 2025. citeturn1search0
+- **Extended Deadline for Individuals:** 16 February 2025. citeturn1search4
+
+### Who Must File
+- Taxpayers whose **total income** exceeds the exemption limit. citeturn1search6
+- Individuals **assessed** in any of the three preceding years. citeturn1search6
+- **Shareholders**, directors, government employees, partners, non-residents with permanent establishment. citeturn1search6
+
+### Filing Modes
+- **Online (e-Return):** Register and file at etaxnbr.gov.bd using e‑TIN & OTP. citeturn1search8
+- **Offline:** Submit paper forms at designated NBR offices or authorized banks. citeturn1search6
+
+### Required Documents
+- **e-TIN certificate** and **National ID (NID)** copy.
+- **Salary certificates** (Form 16) or audited P&L statements. citeturn1search6
+- **Tax deduction certificates** from employers or clients.
+- **Investment proofs** (insurance, provident fund, savings instruments) for rebates. citeturn1search6
+
+## Tax Computation Details
+
+### Income Heads
+1. **Salaries**  
+2. **House property**  
+3. **Business or profession**  
+4. **Capital gains**  
+5. **Other sources** citeturn1search6
+
+### Exemption Limits
+- **Male:** BDT 350,000  
+- **Women & Seniors (65+):** BDT 400,000  
+- **Disabled & Third-gender:** BDT 475,000 citeturn1search4
+
+### Progressive Tax Rates
+| Taxable Income Bracket (BDT)    | Rate (%) |
+|---------------------------------|----------|
+| 0 – 350,000                     | 0        |
+| 350,001 – 450,000               | 5        |
+| 450,001 – 850,000               | 10       |
+| 850,001 – 1,350,000             | 15       |
+| 1,350,001 – 1,850,000           | 20       |
+| 1,850,001 – 3,850,000           | 25       |
+| Above 3,850,000                 | 30       | citeturn1search2
+
+### Surcharge on Tax Payable
+- **Net wealth 40–100M BDT:** 10%  
+- **100–200M BDT:** 20%  
+- **200–500M BDT:** 30%  
+- **Above 500M BDT:** 35% citeturn1search2
+
+### Minimum Tax Regime
+- **Dhaka North/South & Chittagong City Corp.:** BDT 5,000  
+- **Other City Corporations:** BDT 4,000  
+- **Other Areas:** BDT 3,000 citeturn1search2
+
+### Tax Rebate (Section 44)
+- **15%** of the lowest of:  
+  1. Actual qualifying investment  
+  2. 30% of taxable income  
+  3. BDT 15,000,000  
+- **Qualifying investments:** Life insurance premiums, provident/pension funds, approved debentures, charitable donations, govt savings certificates, one-time computer/laptop purchase. citeturn1search2
+
+### Penalties for Late Filing
+- **2%** interest per month on tax shortfall from Tax Day until filing or assessment. citeturn1search6
+
+## Step-by-Step Online Filing Process
+1. **Login/Register** on etaxnbr.gov.bd with e‑TIN & OTP. citeturn1search8  
+2. **Select Tax Year:** Choose “2024–2025.” citeturn1search5  
+3. **Fill in Schedules:** Enter incomes, deductions (Schedule 24D), and rebates.  
+4. **Upload Documents:** Scanned NID, salary slips, bank statements, etc.  
+5. **Verify & Submit:** Review, calculate tax, confirm via OTP, and submit.  
+6. **Download PSR:** Proof of Submission of Return (PSR) for records. citeturn1search5  
+7. **Pay Tax (if due):** Generate A-challan and pay via authorized bank/mobile app.
+
+## Sample Tax Calculation
+**Scenario:** Male taxpayer; Total Income = BDT 1,200,000  
+- **Exemption Limit:** 350,000  
+- **Chargeable Income:** 1,200,000 – 350,000 = 850,000  
+- **Tax Computation:**  
+  - 0–350,000 @0% = 0  
+  - 350,001–450,000 @5% = 5,000  
+  - 450,001–850,000 @10% = 40,000  
+  - Remaining 350,000 (850,001–1,200,000) @15% = 52,500  
+  - **Subtotal:** 97,500  
+- **Rebate:** 15% of BDT 200,000 investment = 30,000  
+- **Tax After Rebate:** 97,500 – 30,000 = 67,500  
+- **Surcharge:** None (net wealth < 40M)  
+- **Minimum Tax Check:** 67,500 > 5,000 (Dhaka) ⇒ Final = 67,500
+
+---

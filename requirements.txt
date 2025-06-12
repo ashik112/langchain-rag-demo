@@ -1,0 +1,21 @@
+# Dev environment
+pip
+autopep8
+
+# App
+langchain_core
+langchain-google-genai # This package contains the LangChain integrations for the Gemini API.
+Pillow # PIL image-loading library
+flask
+flask-cors
+
+# RAG System
+faiss-cpu # Vector store for similarity search (Windows-specific package)
+python-dotenv # For environment variables
+unstructured # For document processing
+python-magic-bin # For file type detection
+pypdf # For PDF processing
+docx2txt # For Word document processing
+tiktoken # For token counting
+langchain # Core LangChain package
+langchain-community # Community integrations for LangChain
