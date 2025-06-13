@@ -39,31 +39,51 @@ def query_rag():
 
         print(f"Received question: {question}")
 
-        def generate():
-            try:
-                # Stream the response token by token
-                for chunk in rag.stream_query(question):
-                    if chunk:
-                        print(f"Sending chunk: {chunk}")
-                        # Send each chunk as a separate event
-                        yield f"data: {json.dumps({'text': chunk})}\n\n"
-                        # Force flush
-                        time.sleep(0.01)  # Small delay to ensure chunks are sent separately
-            except Exception as e:
-                print(f"Error in generate: {str(e)}")
-                yield f"data: {json.dumps({'error': str(e)})}\n\n"
-
-        response = Response(
-            stream_with_context(generate()),
-            mimetype='text/event-stream',
-            headers={
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-                'X-Accel-Buffering': 'no',
-                'Transfer-Encoding': 'chunked'
+        # Get the full response with source documents
+        response = rag.qa_chain.invoke({"question": question})
+        answer = response["answer"]
+        source_documents = response.get("source_documents", [])
+        
+        # Process source documents for better information
+        sources_info = []
+        for i, doc in enumerate(source_documents):
+            source_info = {
+                'source': doc.metadata.get("source", "Unknown"),
+                'chunk_id': doc.metadata.get("chunk_id", i),
+                'summary': doc.metadata.get("summary", ""),
+                'relevance_score': getattr(doc, 'score', None),
+                'content_preview': doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content
             }
-        )
-        return response
+            sources_info.append(source_info)
+        
+        # Create a more detailed sources section
+        if sources_info:
+            sources_text = "\n\n## Sources\n\n"
+            unique_sources = {}
+            for source in sources_info:
+                source_name = source['source']
+                if source_name not in unique_sources:
+                    unique_sources[source_name] = []
+                unique_sources[source_name].append(source)
+            
+            for source_name, chunks in unique_sources.items():
+                sources_text += f"**{source_name}**\n"
+                for chunk in chunks:
+                    if chunk['summary']:
+                        sources_text += f"- {chunk['summary']}\n"
+                sources_text += "\n"
+            
+            answer += sources_text
+        
+        print(f"Sending response with {len(source_documents)} source documents")
+        
+        return jsonify({
+            'answer': answer,
+            'sources': [s['source'] for s in sources_info],
+            'source_details': sources_info,
+            'total_sources': len(source_documents)
+        })
+        
     except Exception as e:
         print(f"Error in query_rag: {str(e)}")
         return jsonify({'error': str(e)}), 500

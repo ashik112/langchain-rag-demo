@@ -37,7 +37,7 @@ class RAGSystem:
         loaders = {
             ".txt": (TextLoader, {"encoding": "utf-8"}),
             ".pdf": (PyPDFLoader, {"extract_images": False}),
-            ".docx": (Docx2txtLoader, {"extract_images": False}),
+            ".docx": (Docx2txtLoader, {}),
         }
 
         documents = []
@@ -85,14 +85,36 @@ class RAGSystem:
     #     return documents
     
     def process_documents(self, documents: List) -> List:
-        """Process and chunk the documents."""
-        # Split documents into chunks
+        """Process and chunk the documents with improved strategy."""
+        # Use a more sophisticated text splitter with better chunking
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
+            chunk_size=1500,  # Increased for better context
+            chunk_overlap=300,  # Increased overlap for better continuity
             length_function=len,
+            separators=[
+                "\n\n\n",  # Triple newlines (major sections)
+                "\n\n",    # Double newlines (paragraphs)
+                "\n",      # Single newlines
+                ". ",      # Sentences
+                "! ",      # Exclamations
+                "? ",      # Questions
+                "; ",      # Semicolons
+                ", ",      # Commas
+                " ",       # Spaces
+                ""         # Characters
+            ],
+            keep_separator=True,  # Keep separators for better context
         )
         chunks = text_splitter.split_documents(documents)
+        
+        # Add metadata to chunks for better retrieval
+        for i, chunk in enumerate(chunks):
+            chunk.metadata['chunk_id'] = i
+            chunk.metadata['chunk_size'] = len(chunk.page_content)
+            # Add first few words as a summary
+            words = chunk.page_content.split()[:10]
+            chunk.metadata['summary'] = ' '.join(words) + '...'
+        
         print(f"Created {len(chunks)} chunks from {len(documents)} documents")
         return chunks
     
@@ -125,65 +147,151 @@ class RAGSystem:
         return False
     
     def setup_qa_chain(self):
-        """Set up the question-answering chain."""
-        # Initialize the language model
+        """Set up the question-answering chain with improved retrieval."""
+        # Initialize the language model with a system prompt
         llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash-preview-05-20",
-            temperature=0.7,
-            streaming=True  # Enable streaming
+            temperature=0.3,  # Lower temperature for more focused responses
+            streaming=False,  # Disable streaming
+            system_instruction="""You are a helpful AI assistant that provides accurate, well-formatted responses based on the provided context documents.
+
+CRITICAL INSTRUCTIONS:
+1. ONLY use information from the provided context documents
+2. If the context doesn't contain enough information to answer the question, say so clearly
+3. Always cite which parts of the context you're using
+4. Structure your response with clear markdown formatting
+5. Be comprehensive but focused - don't add information not in the context
+
+FORMATTING REQUIREMENTS:
+1. Use clear headings (# ## ###) to organize information
+2. Use bullet points (-) for lists and features
+3. Use numbered lists (1. 2. 3.) for sequential steps
+4. Use **bold** for important terms and concepts
+5. Use `code formatting` for technical terms, file names, or commands
+6. Add blank lines between sections for readability
+7. Use > blockquotes for important notes or warnings
+
+RESPONSE STRUCTURE:
+- Start with a direct answer to the question
+- Provide detailed explanation with proper formatting
+- Include relevant examples from the context if available
+- End with a summary if the topic is complex
+
+Remember: Base your response ONLY on the provided context. If information is missing, acknowledge this limitation."""
         )
         
         # Set up memory for conversation history
         memory = ConversationBufferMemory(
             memory_key="chat_history",
             return_messages=True,
-            input_key="question",     # matches the chain's input
+            input_key="question",
             output_key="answer" 
         )
         
-        # Create the QA chain with streaming
+        # Create a more sophisticated retriever
+        base_retriever = self.vector_store.as_retriever(
+            search_type="mmr",  # Maximum Marginal Relevance for diversity
+            search_kwargs={
+                "k": 6,  # Get more chunks initially
+                "fetch_k": 12,  # Fetch more candidates for MMR
+                "lambda_mult": 0.7  # Balance between relevance and diversity
+            }
+        )
+        
+        # Create the QA chain with custom prompt
+        from langchain.prompts import PromptTemplate
+        
+        custom_prompt = PromptTemplate(
+            template="""Use the following pieces of context to answer the question at the end. 
+            
+Context information:
+{context}
+
+Previous conversation:
+{chat_history}
+
+Question: {question}
+
+Instructions:
+- Provide a comprehensive answer based ONLY on the context provided
+- If the context doesn't contain sufficient information, clearly state this
+- Use proper markdown formatting for better readability
+- Structure your response logically with headings and bullet points
+- Be specific and cite relevant parts of the context
+
+Answer:""",
+            input_variables=["context", "chat_history", "question"]
+        )
+        
+        # Create the QA chain
         self.qa_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
-            retriever=self.vector_store.as_retriever(search_kwargs={"k": 3}),
+            retriever=base_retriever,
             memory=memory,
             return_source_documents=True,
             output_key="answer",
-            return_generated_question=True
+            return_generated_question=True,
+            combine_docs_chain_kwargs={"prompt": custom_prompt}
         )
     
-    def stream_query(self, question: str):
-        """Stream a query response from the RAG system."""
-        if not self.qa_chain:
-            raise ValueError("QA chain not set up. Call setup_qa_chain() first.")
+    def enhance_query(self, question: str) -> str:
+        """Enhance the query for better retrieval."""
+        # Add context keywords based on common document patterns
+        enhanced_question = question
         
-        print(f"Starting stream query for: {question}")
+        # Add relevant keywords for better matching
+        if any(word in question.lower() for word in ['how', 'guide', 'tutorial', 'steps']):
+            enhanced_question += " instructions process steps"
         
-        # Get the sources first
-        docs = self.vector_store.similarity_search(question, k=3)
-        sources = [doc.metadata.get("source", "Unknown") for doc in docs]
-        print(f"Found sources: {sources}")
-        
-        try:
-            # Get the full response first
-            response = self.qa_chain.invoke({"question": question})
-            answer = response["answer"]
+        if any(word in question.lower() for word in ['what', 'definition', 'meaning']):
+            enhanced_question += " definition explanation overview"
             
-            # Stream the response word by word
-            words = answer.split()
-            for i, word in enumerate(words):
-                # Add a space after each word except the last one
-                yield word + (" " if i < len(words) - 1 else "")
-                # Small delay to simulate streaming
-                time.sleep(0.05)
+        if any(word in question.lower() for word in ['integration', 'api', 'connect']):
+            enhanced_question += " integration API technical implementation"
+            
+        if any(word in question.lower() for word in ['payment', 'billing', 'cost']):
+            enhanced_question += " payment billing cost pricing"
+            
+        return enhanced_question
+    
+    def get_relevant_context(self, question: str, k: int = 6) -> List:
+        """Get relevant context using multiple retrieval strategies."""
+        if not self.vector_store:
+            return []
+        
+        # Enhance the query
+        enhanced_question = self.enhance_query(question)
+        
+        # Use multiple search strategies
+        try:
+            # 1. Similarity search
+            similarity_docs = self.vector_store.similarity_search(enhanced_question, k=k//2)
+            
+            # 2. MMR search for diversity
+            mmr_docs = self.vector_store.max_marginal_relevance_search(
+                enhanced_question, 
+                k=k//2, 
+                fetch_k=k*2,
+                lambda_mult=0.7
+            )
+            
+            # Combine and deduplicate
+            all_docs = similarity_docs + mmr_docs
+            seen_content = set()
+            unique_docs = []
+            
+            for doc in all_docs:
+                content_hash = hash(doc.page_content[:100])  # Use first 100 chars as identifier
+                if content_hash not in seen_content:
+                    seen_content.add(content_hash)
+                    unique_docs.append(doc)
+            
+            return unique_docs[:k]
             
         except Exception as e:
-            print(f"Error in stream_query: {str(e)}")
-            raise
-        
-        # Yield the sources at the end
-        sources_text = f"\n\nSources: {', '.join(set(sources))}"
-        print(f"Yielding sources: {sources_text}")
-        yield sources_text
+            print(f"Error in context retrieval: {e}")
+            # Fallback to simple similarity search
+            return self.vector_store.similarity_search(question, k=k)
 
 def main():
     # Initialize the RAG system
@@ -207,8 +315,8 @@ def main():
             break
         
         try:
-            for token in rag.stream_query(question):
-                print(token, end='', flush=True)
+            response = rag.qa_chain.invoke({"question": question})
+            print(f"\nAnswer: {response['answer']}")
         except Exception as e:
             print(f"Error: {str(e)}")
 
