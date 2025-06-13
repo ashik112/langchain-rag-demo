@@ -17,19 +17,27 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 import time
 
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAzbenL0ic4sltL1kENQPYVd8l_zNgPy1I"; 
-
-# Load environment variables
+# Load environment variables first
 load_dotenv()
 
 class RAGSystem:
-    def __init__(self, assets_dir: str = "assets"):
+    def __init__(self, assets_dir: str = None):
         """Initialize the RAG system.
         
         Args:
             assets_dir (str): Directory containing the documents to be processed
         """
-        self.assets_dir = assets_dir
+        # Get assets directory from environment variable if not provided
+        self.assets_dir = assets_dir or os.getenv('ASSETS_DIR', 'assets')
+        
+        # Get Google API key from environment variable
+        google_api_key = os.getenv('GOOGLE_API_KEY')
+        if not google_api_key:
+            raise ValueError("GOOGLE_API_KEY environment variable is not set")
+        
+        # Set the API key
+        os.environ["GOOGLE_API_KEY"] = google_api_key
+        
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         self.vector_store = None
         self.qa_chain = None

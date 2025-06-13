@@ -152,8 +152,8 @@ def query_rag():
         else:
             response_type = "hybrid"
         
-        print(f"📊 Response type: {response_type}")
-        print(f"✅ Sending response with {len(source_documents)} source documents")
+        app.logger.debug(f"Response type: {response_type}")
+        app.logger.debug(f"Sending response with {len(source_documents)} source documents")
         
         # Step 6: Return structured response with all metadata including token usage
         return jsonify({
@@ -169,8 +169,23 @@ def query_rag():
         })
         
     except Exception as e:
-        print(f"❌ Error in query_rag: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Error processing RAG request: {str(e)}", exc_info=True)
+        return jsonify({
+            'error': str(e),
+            'details': {
+                'type': type(e).__name__,
+                'message': str(e),
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }), 500
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", debug=True, port=5000, threaded=True) 
+    app.logger.info("Starting Flask server in debug mode")
+    app.run(
+        host="0.0.0.0", 
+        port=5000, 
+        debug=True, 
+        threaded=True,
+        use_reloader=True,
+        extra_files=['main.py', 'rag_system.py']
+    ) 
