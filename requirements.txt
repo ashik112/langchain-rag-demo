@@ -13,7 +13,6 @@ flask-cors
 faiss-cpu # Vector store for similarity search (Windows-specific package)
 python-dotenv # For environment variables
 unstructured # For document processing
-python-magic-bin # For file type detection
 pypdf # For PDF processing
 docx2txt # For Word document processing
 tiktoken # For token counting
