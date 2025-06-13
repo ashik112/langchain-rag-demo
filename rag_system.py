@@ -147,40 +147,60 @@ class RAGSystem:
         return False
     
     def setup_qa_chain(self):
-        """Set up the question-answering chain with improved retrieval."""
-        # Initialize the language model with a system prompt
+        """Set up the question-answering chain with hybrid document + general knowledge approach."""
+        # Initialize the language model with hybrid system prompt
+        # This allows the AI to provide relevant general knowledge when documents are incomplete
         llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash-preview-05-20",
             temperature=0.3,  # Lower temperature for more focused responses
             streaming=False,  # Disable streaming
-            system_instruction="""You are a helpful AI assistant that provides accurate, well-formatted responses based on the provided context documents.
+            system_instruction="""You are a helpful AI assistant that provides comprehensive answers using both document context and relevant general knowledge.
 
-CRITICAL INSTRUCTIONS:
-1. ONLY use information from the provided context documents
-2. If the context doesn't contain enough information to answer the question, say so clearly
-3. Always cite which parts of the context you're using
-4. Structure your response with clear markdown formatting
-5. Be comprehensive but focused - don't add information not in the context
+HYBRID RESPONSE STRATEGY:
+1. ALWAYS start by analyzing the provided document context
+2. If documents fully answer the question, use ONLY document information
+3. If documents mention a topic but lack details/examples, you may supplement with relevant general knowledge
+4. NEVER provide information on topics not mentioned or related to the documents
+5. ALWAYS stay within the scope and domain of the provided documents
 
-FORMATTING REQUIREMENTS:
-1. Use clear headings (# ## ###) to organize information
-2. Use bullet points (-) for lists and features
-3. Use numbered lists (1. 2. 3.) for sequential steps
-4. Use **bold** for important terms and concepts
-5. Use `code formatting` for technical terms, file names, or commands
-6. Add blank lines between sections for readability
-7. Use > blockquotes for important notes or warnings
+WHEN TO USE GENERAL KNOWLEDGE:
+✅ Documents mention "Android integration" but lack code examples → Provide relevant Android code
+✅ Documents describe "API endpoints" but no implementation details → Show implementation examples  
+✅ Documents mention "payment integration" but no code → Provide relevant payment code examples
+❌ Documents are about gaming platform, user asks about cooking → Don't answer, outside scope
+❌ Documents don't mention databases, user asks about SQL → Don't answer, not relevant
 
 RESPONSE STRUCTURE:
-- Start with a direct answer to the question
-- Provide detailed explanation with proper formatting
-- Include relevant examples from the context if available
-- End with a summary if the topic is complex
+1. **Document Analysis**: Start with what the documents say
+2. **Gap Identification**: Identify what's missing but relevant
+3. **Knowledge Supplement**: Add relevant examples/details if appropriate
+4. **Clear Attribution**: Mark what comes from docs vs. general knowledge
 
-Remember: Base your response ONLY on the provided context. If information is missing, acknowledge this limitation."""
+FORMATTING REQUIREMENTS:
+- Use clear markdown headings (# ## ###)
+- Use bullet points (-) for lists and features  
+- Use numbered lists (1. 2. 3.) for sequential steps
+- Use **bold** for important terms and concepts
+- Use `code formatting` for technical terms and code snippets
+- Use ```language blocks for code examples
+- Use > blockquotes for important notes
+
+RESPONSE TEMPLATE:
+## Based on Your Documents
+[What the documents explicitly state]
+
+## Implementation Details
+[Relevant examples/code if documents mention the topic but lack specifics]
+> 💡 **Note**: This implementation guidance is based on the [specific topic] mentioned in your documents.
+
+## Summary
+[Concise summary combining document info and any supplemental details]
+
+Remember: Only provide general knowledge that directly relates to topics already mentioned in the documents."""
         )
         
-        # Set up memory for conversation history
+        # Set up conversation memory to maintain context across questions
+        # This helps the AI understand the ongoing conversation and document scope
         memory = ConversationBufferMemory(
             memory_key="chat_history",
             return_messages=True,
@@ -188,51 +208,320 @@ Remember: Base your response ONLY on the provided context. If information is mis
             output_key="answer" 
         )
         
-        # Create a more sophisticated retriever
+        # Create a sophisticated retriever that finds diverse, relevant content
+        # MMR (Maximum Marginal Relevance) balances relevance with diversity
         base_retriever = self.vector_store.as_retriever(
             search_type="mmr",  # Maximum Marginal Relevance for diversity
             search_kwargs={
-                "k": 6,  # Get more chunks initially
-                "fetch_k": 12,  # Fetch more candidates for MMR
-                "lambda_mult": 0.7  # Balance between relevance and diversity
+                "k": 6,  # Get more chunks initially for better context
+                "fetch_k": 12,  # Fetch more candidates for MMR selection
+                "lambda_mult": 0.7  # Balance between relevance (1.0) and diversity (0.0)
             }
         )
         
-        # Create the QA chain with custom prompt
+        # Create custom prompt template for hybrid responses
+        # This template guides the AI to properly combine document and general knowledge
         from langchain.prompts import PromptTemplate
         
         custom_prompt = PromptTemplate(
-            template="""Use the following pieces of context to answer the question at the end. 
-            
-Context information:
+            template="""Use the following context from documents and conversation history to provide a comprehensive answer.
+
+DOCUMENT CONTEXT:
 {context}
 
-Previous conversation:
+CONVERSATION HISTORY:
 {chat_history}
 
-Question: {question}
+CURRENT QUESTION: {question}
 
-Instructions:
-- Provide a comprehensive answer based ONLY on the context provided
-- If the context doesn't contain sufficient information, clearly state this
-- Use proper markdown formatting for better readability
-- Structure your response logically with headings and bullet points
-- Be specific and cite relevant parts of the context
+INSTRUCTIONS FOR HYBRID RESPONSE:
+1. Analyze what the documents say about this topic
+2. Identify if the question relates to topics mentioned in the documents
+3. If documents mention the topic but lack specifics (like code examples), supplement with relevant general knowledge
+4. If the topic is not mentioned in documents, politely decline and suggest document-related questions
+5. Always clearly indicate what comes from documents vs. general knowledge
+6. Use proper markdown formatting for readability
 
-Answer:""",
+ANSWER:""",
             input_variables=["context", "chat_history", "question"]
         )
         
-        # Create the QA chain
+        # Create the conversational QA chain with hybrid capabilities
+        # This chain combines document retrieval with conversational memory
         self.qa_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
             retriever=base_retriever,
             memory=memory,
-            return_source_documents=True,
+            return_source_documents=True,  # Include source docs for transparency
             output_key="answer",
-            return_generated_question=True,
-            combine_docs_chain_kwargs={"prompt": custom_prompt}
+            return_generated_question=True,  # Help with follow-up questions
+            combine_docs_chain_kwargs={"prompt": custom_prompt}  # Use our hybrid prompt
         )
+    
+    def analyze_query_intent(self, question: str) -> dict:
+        """
+        Analyze the user's query to determine intent and suggest response strategy.
+        
+        This helps the hybrid system understand:
+        1. What type of information the user is seeking
+        2. Whether they need implementation details vs. conceptual info
+        3. If the query relates to topics likely in technical documents
+        
+        Args:
+            question (str): The user's question
+            
+        Returns:
+            dict: Analysis results with intent classification and keywords
+        """
+        question_lower = question.lower()
+        
+        # Intent classification based on question patterns
+        intent_patterns = {
+            'implementation': ['how to', 'how do i', 'implement', 'integrate', 'code', 'example', 'tutorial'],
+            'explanation': ['what is', 'what are', 'explain', 'describe', 'definition', 'meaning'],
+            'comparison': ['difference', 'compare', 'vs', 'versus', 'better', 'best'],
+            'troubleshooting': ['error', 'problem', 'issue', 'fix', 'debug', 'not working'],
+            'features': ['features', 'capabilities', 'can i', 'does it', 'support'],
+            'getting_started': ['start', 'begin', 'setup', 'install', 'first', 'initial']
+        }
+        
+        # Detect primary intent
+        detected_intents = []
+        for intent, patterns in intent_patterns.items():
+            if any(pattern in question_lower for pattern in patterns):
+                detected_intents.append(intent)
+        
+        # Technical domain detection (helps determine if general knowledge might be relevant)
+        technical_domains = {
+            'mobile': ['android', 'ios', 'mobile', 'app', 'kotlin', 'swift', 'react native'],
+            'web': ['web', 'javascript', 'html', 'css', 'react', 'vue', 'angular', 'frontend', 'backend'],
+            'api': ['api', 'rest', 'graphql', 'endpoint', 'request', 'response', 'http'],
+            'database': ['database', 'sql', 'mongodb', 'postgres', 'mysql', 'query'],
+            'payment': ['payment', 'billing', 'stripe', 'paypal', 'transaction', 'checkout'],
+            'authentication': ['auth', 'login', 'oauth', 'jwt', 'token', 'security'],
+            'integration': ['integration', 'webhook', 'sdk', 'plugin', 'connect']
+        }
+        
+        detected_domains = []
+        for domain, keywords in technical_domains.items():
+            if any(keyword in question_lower for keyword in keywords):
+                detected_domains.append(domain)
+        
+        # Determine if this query likely needs implementation examples
+        needs_examples = any(pattern in question_lower for pattern in [
+            'how to', 'example', 'code', 'implement', 'integrate', 'tutorial', 'guide'
+        ])
+        
+        return {
+            'intents': detected_intents,
+            'primary_intent': detected_intents[0] if detected_intents else 'general',
+            'technical_domains': detected_domains,
+            'needs_examples': needs_examples,
+            'complexity': 'high' if len(detected_domains) > 1 or needs_examples else 'medium'
+        }
+    
+    def enhance_context_with_analysis(self, question: str, context_docs: List) -> str:
+        """
+        Enhance the context provided to the LLM with query analysis and guidance.
+        
+        This method:
+        1. Analyzes what the user is asking for
+        2. Examines what information is available in documents
+        3. Provides guidance to the LLM about when to use general knowledge
+        
+        Args:
+            question (str): The user's question
+            context_docs (List): Retrieved document chunks
+            
+        Returns:
+            str: Enhanced context string with analysis and guidance
+        """
+        # Analyze the user's query
+        query_analysis = self.analyze_query_intent(question)
+        
+        # Analyze document content for topic coverage
+        doc_topics = set()
+        doc_content_summary = []
+        
+        for doc in context_docs:
+            content = doc.page_content.lower()
+            
+            # Extract topics mentioned in documents
+            for domain, keywords in {
+                'mobile': ['android', 'ios', 'mobile', 'app'],
+                'web': ['web', 'javascript', 'html', 'css', 'react'],
+                'api': ['api', 'rest', 'endpoint', 'request'],
+                'database': ['database', 'sql', 'query'],
+                'payment': ['payment', 'billing', 'transaction'],
+                'authentication': ['auth', 'login', 'oauth', 'token'],
+                'integration': ['integration', 'webhook', 'sdk']
+            }.items():
+                if any(keyword in content for keyword in keywords):
+                    doc_topics.add(domain)
+            
+            # Create content summary
+            doc_summary = {
+                'source': doc.metadata.get('source', 'Unknown'),
+                'has_code': 'code' in content or '```' in doc.page_content,
+                'has_examples': 'example' in content or 'tutorial' in content,
+                'length': len(doc.page_content),
+                'key_topics': [topic for topic in doc_topics if any(
+                    keyword in content for keyword in {
+                        'mobile': ['android', 'ios'], 'web': ['javascript', 'react'],
+                        'api': ['api', 'endpoint'], 'payment': ['payment', 'billing']
+                    }.get(topic, [])
+                )]
+            }
+            doc_content_summary.append(doc_summary)
+        
+        # Create enhanced context guidance
+        context_guidance = f"""
+QUERY ANALYSIS:
+- Primary Intent: {query_analysis['primary_intent']}
+- Technical Domains: {', '.join(query_analysis['technical_domains']) if query_analysis['technical_domains'] else 'General'}
+- Needs Examples: {'Yes' if query_analysis['needs_examples'] else 'No'}
+- Complexity: {query_analysis['complexity']}
+
+DOCUMENT ANALYSIS:
+- Topics Covered: {', '.join(doc_topics) if doc_topics else 'General content'}
+- Total Chunks: {len(context_docs)}
+- Has Code Examples: {any(doc['has_code'] for doc in doc_content_summary)}
+- Has Tutorials: {any(doc['has_examples'] for doc in doc_content_summary)}
+
+HYBRID RESPONSE GUIDANCE:
+"""
+        
+        # Determine response strategy based on analysis
+        if query_analysis['needs_examples'] and not any(doc['has_code'] for doc in doc_content_summary):
+            if any(domain in doc_topics for domain in query_analysis['technical_domains']):
+                context_guidance += """
+✅ SUPPLEMENT WITH EXAMPLES: Documents mention the topic but lack implementation details.
+   Provide relevant code examples and implementation guidance.
+   Clearly mark what comes from documents vs. general knowledge.
+"""
+            else:
+                context_guidance += """
+❌ STAY DOCUMENT-FOCUSED: Topic not clearly covered in documents.
+   Acknowledge limitation and suggest document-related questions.
+"""
+        elif len(context_docs) > 0:
+            context_guidance += """
+✅ DOCUMENT-BASED RESPONSE: Sufficient information available in documents.
+   Focus on document content with minimal general knowledge supplementation.
+"""
+        else:
+            context_guidance += """
+❌ INSUFFICIENT CONTEXT: No relevant documents found.
+   Politely decline and suggest questions about document content.
+"""
+        
+        return context_guidance
+    
+    def get_enhanced_response(self, question: str) -> dict:
+        """
+        Get an enhanced response using hybrid approach with detailed analysis and token tracking.
+        
+        This method orchestrates the entire hybrid response process:
+        1. Analyzes the query intent and complexity
+        2. Retrieves relevant document context
+        3. Enhances context with analysis and guidance
+        4. Generates response with appropriate hybrid strategy
+        5. Tracks token usage for cost monitoring and optimization
+        
+        Args:
+            question (str): The user's question
+            
+        Returns:
+            dict: Enhanced response with metadata, analysis, and token usage
+        """
+        print(f"🔍 Analyzing query: {question}")
+        
+        # Step 1: Analyze the query
+        query_analysis = self.analyze_query_intent(question)
+        print(f"📊 Query analysis: {query_analysis}")
+        
+        # Step 2: Get relevant context
+        context_docs = self.get_relevant_context(question, k=6)
+        print(f"📚 Retrieved {len(context_docs)} context documents")
+        
+        # Step 3: Enhance context with analysis
+        context_guidance = self.enhance_context_with_analysis(question, context_docs)
+        print(f"🎯 Generated context guidance for hybrid response")
+        
+        # Step 4: Calculate input token count for cost tracking
+        # This helps users understand the cost and complexity of their queries
+        input_text = question
+        if context_docs:
+            # Add context length to input calculation
+            context_text = "\n".join([doc.page_content for doc in context_docs])
+            input_text += f"\n{context_text}"
+        
+        # Rough token estimation (1 token ≈ 4 characters for most models)
+        # This is an approximation since exact tokenization requires the model's tokenizer
+        estimated_input_tokens = len(input_text) // 4
+        
+        print(f"📏 Estimated input tokens: {estimated_input_tokens}")
+        
+        # Step 5: Get response from QA chain and measure output
+        response = self.qa_chain.invoke({"question": question})
+        
+        # Calculate output token count
+        output_text = response['answer']
+        estimated_output_tokens = len(output_text) // 4
+        
+        print(f"📏 Estimated output tokens: {estimated_output_tokens}")
+        
+        # Step 6: Calculate token usage statistics
+        total_tokens = estimated_input_tokens + estimated_output_tokens
+        
+        # Estimate cost based on Google Gemini pricing (approximate)
+        # Input: $0.00015 per 1K tokens, Output: $0.0006 per 1K tokens
+        estimated_input_cost = (estimated_input_tokens / 1000) * 0.00015
+        estimated_output_cost = (estimated_output_tokens / 1000) * 0.0006
+        total_estimated_cost = estimated_input_cost + estimated_output_cost
+        
+        # Create detailed token usage information
+        token_usage = {
+            'input_tokens': estimated_input_tokens,
+            'output_tokens': estimated_output_tokens,
+            'total_tokens': total_tokens,
+            'context_docs_count': len(context_docs),
+            'context_length': sum(len(doc.page_content) for doc in context_docs),
+            'question_length': len(question),
+            'answer_length': len(output_text),
+            'estimated_cost': {
+                'input_cost_usd': round(estimated_input_cost, 6),
+                'output_cost_usd': round(estimated_output_cost, 6),
+                'total_cost_usd': round(total_estimated_cost, 6)
+            },
+            'efficiency_metrics': {
+                'tokens_per_context_doc': round(estimated_input_tokens / max(len(context_docs), 1), 2),
+                'output_input_ratio': round(estimated_output_tokens / max(estimated_input_tokens, 1), 2),
+                'cost_per_response_cents': round(total_estimated_cost * 100, 4)
+            }
+        }
+        
+        print(f"💰 Token usage: {total_tokens} total ({estimated_input_tokens} in, {estimated_output_tokens} out)")
+        print(f"💰 Estimated cost: ${total_estimated_cost:.6f} USD")
+        
+        # Step 7: Enhance response with analysis metadata and token tracking
+        enhanced_response = {
+            'answer': response['answer'],
+            'source_documents': response.get('source_documents', []),
+            'query_analysis': query_analysis,
+            'context_guidance': context_guidance,
+            'total_context_docs': len(context_docs),
+            'token_usage': token_usage,  # Add comprehensive token tracking
+            'response_metadata': {
+                'has_code_examples': '```' in response['answer'],
+                'response_length': len(response['answer']),
+                'likely_hybrid': query_analysis['needs_examples'] and len(context_docs) > 0,
+                'processing_timestamp': time.time()
+            }
+        }
+        
+        print(f"✅ Generated enhanced hybrid response with token tracking")
+        return enhanced_response
     
     def enhance_query(self, question: str) -> str:
         """Enhance the query for better retrieval."""
@@ -315,7 +604,7 @@ def main():
             break
         
         try:
-            response = rag.qa_chain.invoke({"question": question})
+            response = rag.get_enhanced_response(question)
             print(f"\nAnswer: {response['answer']}")
         except Exception as e:
             print(f"Error: {str(e)}")

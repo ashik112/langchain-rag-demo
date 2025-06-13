@@ -60,8 +60,14 @@ function setLoading(loading) {
   const statusDot = statusIndicator.querySelector('.status-dot');
   
   if (loading) {
-    statusText.textContent = 'Thinking...';
+    statusText.textContent = 'Analyzing documents...';
     statusDot.style.background = 'var(--warning-color)';
+    
+    // Update loading message text for better UX
+    const loadingText = loadingIndicator.querySelector('.loading-text');
+    if (loadingText) {
+      loadingText.textContent = 'Searching documents and preparing response...';
+    }
   } else {
     statusText.textContent = 'Ready';
     statusDot.style.background = 'var(--success-color)';
@@ -82,8 +88,8 @@ function showWelcomeMessage() {
   }
 }
 
-// Add message to chat
-function addMessage(text, isUser = false) {
+// Add message to chat with enhanced hybrid response handling
+function addMessage(text, isUser = false, responseData = null) {
   hideWelcomeMessage();
   messageCount++;
   
@@ -97,17 +103,77 @@ function addMessage(text, isUser = false) {
     contentDiv.textContent = text;
   } else {
     contentDiv.innerHTML = md.render(text);
+    
+    if (responseData) {
+      addHybridIndicators(contentDiv, responseData);
+    }
   }
   
   messageDiv.appendChild(contentDiv);
   chatHistory.appendChild(messageDiv);
   
-  // Smooth scroll to bottom
   setTimeout(() => {
     chatHistory.scrollTop = chatHistory.scrollHeight;
   }, 100);
   
   return messageDiv;
+}
+
+// Add indicators for hybrid responses to show users what type of response they received
+function addHybridIndicators(contentDiv, responseData) {
+  /**
+   * This function adds visual indicators to help users understand:
+   * 1. Whether the response is purely from documents or includes general knowledge
+   * 2. What topics are covered in their documents
+   * 3. Whether code examples were provided
+   */
+  
+  const indicatorContainer = document.createElement('div');
+  indicatorContainer.className = 'response-indicators';
+  
+  const typeIndicator = document.createElement('div');
+  typeIndicator.className = 'response-type-indicator';
+  
+  if (responseData.response_type === 'document_only') {
+    typeIndicator.innerHTML = `
+      <span class="indicator-icon">📚</span>
+      <span class="indicator-text">Based entirely on your documents</span>
+    `;
+    typeIndicator.classList.add('document-only');
+  } else if (responseData.response_type === 'hybrid') {
+    typeIndicator.innerHTML = `
+      <span class="indicator-icon">🔗</span>
+      <span class="indicator-text">Document info + relevant examples</span>
+    `;
+    typeIndicator.classList.add('hybrid');
+  }
+  
+  indicatorContainer.appendChild(typeIndicator);
+  
+  if (responseData.has_code_examples) {
+    const codeIndicator = document.createElement('div');
+    codeIndicator.className = 'code-indicator';
+    codeIndicator.innerHTML = `
+      <span class="indicator-icon">💻</span>
+      <span class="indicator-text">Includes code examples</span>
+    `;
+    indicatorContainer.appendChild(codeIndicator);
+  }
+  
+  if (responseData.document_topics && responseData.document_topics.length > 0) {
+    const topicsIndicator = document.createElement('div');
+    topicsIndicator.className = 'topics-indicator';
+    const topicsList = responseData.document_topics.slice(0, 5).join(', ');
+    const moreTopics = responseData.document_topics.length > 5 ? ` +${responseData.document_topics.length - 5} more` : '';
+    
+    topicsIndicator.innerHTML = `
+      <span class="indicator-icon">🏷️</span>
+      <span class="indicator-text">Document topics: ${topicsList}${moreTopics}</span>
+    `;
+    indicatorContainer.appendChild(topicsIndicator);
+  }
+  
+  contentDiv.insertBefore(indicatorContainer, contentDiv.firstChild);
 }
 
 // Clear chat
@@ -117,29 +183,37 @@ function clearChat() {
   showWelcomeMessage();
 }
 
-// Handle form submission
+// Handle form submission with enhanced response processing
 async function handleSubmit(question) {
   if (!question.trim() || isLoading) return;
   
-  // Add user message
   addMessage(question, true);
   promptInput.value = '';
   updateCharCounter();
   autoResizeTextarea();
   
-  // Show loading state
   setLoading(true);
   
   try {
-    // Call the RAG system
+    console.log('🚀 Sending question to hybrid RAG system:', question);
+    
     const response = await queryRAG(question);
     
-    // Add assistant message
-    addMessage(response.answer, false);
+    console.log('📊 Response metadata:', {
+      type: response.response_type,
+      sources: response.total_sources,
+      topics: response.document_topics,
+      hasCode: response.has_code_examples
+    });
+    
+    addMessage(response.answer, false, response);
     
   } catch (e) {
-    console.error('Error:', e);
-    addMessage(`**Error:** ${e.message}`, false);
+    console.error('❌ Error in hybrid RAG system:', e);
+    
+    const errorMessage = `**Error:** ${e.message}\n\n> 💡 **Tip**: Try asking about topics mentioned in your documents, or ask for implementation examples related to your document content.`;
+    addMessage(errorMessage, false);
+    
   } finally {
     setLoading(false);
   }
@@ -169,7 +243,8 @@ promptInput.addEventListener('keydown', (ev) => {
 
 // Clear chat button
 clearChatButton.addEventListener('click', () => {
-  if (confirm('Are you sure you want to clear the chat history?')) {
+  if (confirm('Clear chat history? This will remove all messages but keep your documents loaded.')) {
+    console.log('🧹 Clearing chat history');
     clearChat();
   }
 });
@@ -179,6 +254,7 @@ document.addEventListener('click', (ev) => {
   if (ev.target.classList.contains('quick-action-btn')) {
     const question = ev.target.getAttribute('data-question');
     if (question) {
+      console.log('🎯 Quick action selected:', question);
       promptInput.value = question;
       updateCharCounter();
       autoResizeTextarea();
@@ -200,26 +276,30 @@ window.addEventListener('resize', () => {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (ev) => {
-  // Ctrl/Cmd + K to focus input
   if ((ev.ctrlKey || ev.metaKey) && ev.key === 'k') {
     ev.preventDefault();
     promptInput.focus();
+    console.log('⌨️ Keyboard shortcut: Focus input');
   }
   
-  // Ctrl/Cmd + L to clear chat
   if ((ev.ctrlKey || ev.metaKey) && ev.key === 'l') {
     ev.preventDefault();
     if (confirm('Clear chat history?')) {
       clearChat();
+      console.log('⌨️ Keyboard shortcut: Clear chat');
     }
   }
   
-  // Escape to blur input
   if (ev.key === 'Escape') {
     promptInput.blur();
+    console.log('⌨️ Keyboard shortcut: Blur input');
   }
 });
 
-// Initialize
+// Initialize with enhanced logging
+console.log('🚀 Hybrid RAG Chat Interface Initialized');
+console.log('📋 Features: Document search + relevant general knowledge');
+console.log('⌨️ Shortcuts: Ctrl+K (focus), Ctrl+L (clear), Escape (blur)');
+
 updateCharCounter();
 autoResizeTextarea();
