@@ -1,4 +1,5 @@
 import os
+import re
 from typing import List
 from dotenv import load_dotenv
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
@@ -6,7 +7,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders.directory import DirectoryLoader
 from langchain_community.document_loaders import (
     TextLoader,
-    # UnstructuredPDFLoader,
+    UnstructuredPDFLoader,
+    UnstructuredWordDocumentLoader,
     Docx2txtLoader,
     PyPDFLoader,
 )
@@ -31,33 +33,151 @@ class RAGSystem:
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         self.vector_store = None
         self.qa_chain = None
+    
+    def clean_text(self, text: str) -> str:
+        """Minimal text cleaning - just remove invisible Unicode characters."""
+        if not text:
+            return text
+        
+        # Only remove zero-width spaces and other invisible Unicode characters
+        # Don't modify any visible text or spacing
+        text = re.sub(r'[\u200b-\u200f\u2028-\u202f\u205f-\u206f\ufeff]', '', text)
+        
+        return text
 
     def load_documents(self) -> List:
         """Load documents from the assets directory, dispatching by file extension."""
-        loaders = {
-            ".txt": (TextLoader, {"encoding": "utf-8"}),
-            ".pdf": (PyPDFLoader, {"extract_images": False}),
-            ".docx": (Docx2txtLoader, {}),
-        }
+        print(f"🔍 Starting document loading from '{self.assets_dir}'...")
+        
+        # Use selective loaders based on platform and file type
+        import platform
+        is_windows = platform.system().lower() == "windows"
+        
+        if is_windows:
+            # On Windows, use more reliable loaders to avoid hanging
+            loaders = {
+                ".txt": (TextLoader, {"encoding": "utf-8"}),
+                ".pdf": (PyPDFLoader, {}),  # Use PyPDFLoader for PDFs on Windows (more reliable)
+                ".docx": (Docx2txtLoader, {}),  # Use traditional loader for DOCX on Windows
+            }
+            print("🪟 Windows detected - using Windows-optimized loaders")
+        else:
+            # On Unix systems, use unstructured loaders
+            loaders = {
+                ".txt": (TextLoader, {"encoding": "utf-8"}),
+                ".pdf": (UnstructuredPDFLoader, {"mode": "single", "strategy": "fast"}),
+                ".docx": (UnstructuredWordDocumentLoader, {"mode": "single"}),
+            }
+            print("🐧 Unix system detected - using unstructured loaders")
 
         documents = []
+        total_files_found = 0
+        
+        for root, _, files in os.walk(self.assets_dir):
+            for fn in files:
+                ext = os.path.splitext(fn)[1].lower()
+                if ext in loaders:
+                    total_files_found += 1
+                    
+        print(f"📁 Found {total_files_found} supported files to process")
+        
         for root, _, files in os.walk(self.assets_dir):
             for fn in files:
                 ext = os.path.splitext(fn)[1].lower()
                 entry = loaders.get(ext)
                 if not entry:
+                    print(f"⏭️  Skipping unsupported file type: {fn}")
                     continue  # skip unsupported types
 
                 loader_cls, loader_kwargs = entry
                 path = os.path.join(root, fn)
+                print(f"📄 Processing {ext.upper()} file: {fn}")
+                
+                success = False
+                
+                # Try the primary loader first
                 try:
+                    loader_name = "Unstructured" if "Unstructured" in loader_cls.__name__ else "Standard"
+                    print(f"🔄 Loading {ext.upper()} with {loader_name} loader: '{fn}'...")
+                    
                     loader = loader_cls(path, **loader_kwargs)
                     docs = loader.load()
-                    documents.extend(docs)
+                    
+                    if docs and any(doc.page_content.strip() for doc in docs):
+                        # Clean text content for all documents
+                        for doc in docs:
+                            if doc.page_content:
+                                original_content = doc.page_content
+                                cleaned_content = self.clean_text(original_content)
+                                doc.page_content = cleaned_content
+                                
+                                # Log cleaning results for debugging
+                                if len(original_content) != len(cleaned_content):
+                                    print(f"🧹 Cleaned {ext.upper()} text: {len(original_content)} -> {len(cleaned_content)} chars")
+                        
+                        documents.extend(docs)
+                        print(f"✅ Successfully loaded '{fn}' with {loader_name} loader ({len(docs)} chunks)")
+                        success = True
+                    else:
+                        print(f"⚠️  {loader_name} loader returned empty content for '{fn}'")
                 except Exception as e:
-                    print(f"Error loading file '{path}': {e}")
+                    print(f"❌ Primary loader failed for '{fn}': {e}")
+                
+                # Fallback to traditional loaders if unstructured fails
+                if not success:
+                    fallback_loader = None
+                    fallback_kwargs = {}
+                    
+                    if ext == ".pdf":
+                        fallback_loader = PyPDFLoader
+                        fallback_kwargs = {}
+                        fallback_name = "PyPDFLoader"
+                    elif ext == ".docx":
+                        fallback_loader = Docx2txtLoader
+                        fallback_kwargs = {}
+                        fallback_name = "Docx2txtLoader"
+                    else:
+                        fallback_loader = loader_cls
+                        fallback_kwargs = loader_kwargs
+                        fallback_name = "Standard loader"
+                    
+                    if fallback_loader:
+                        try:
+                            print(f"🔄 Trying fallback {fallback_name} for '{fn}'...")
+                            fallback = fallback_loader(path, **fallback_kwargs)
+                            docs = fallback.load()
+                            
+                            if docs and any(doc.page_content.strip() for doc in docs):
+                                # Clean the fallback content too
+                                for doc in docs:
+                                    if doc.page_content:
+                                        original_content = doc.page_content
+                                        cleaned_content = self.clean_text(original_content)
+                                        doc.page_content = cleaned_content
+                                        
+                                        if len(original_content) != len(cleaned_content):
+                                            print(f"🧹 Cleaned {ext.upper()} text: {len(original_content)} -> {len(cleaned_content)} chars")
+                                
+                                documents.extend(docs)
+                                print(f"✅ Successfully loaded '{fn}' with {fallback_name} ({len(docs)} chunks)")
+                                success = True
+                            else:
+                                print(f"⚠️  {fallback_name} returned empty content for '{fn}'")
+                        except Exception as fallback_error:
+                            print(f"❌ {fallback_name} also failed for '{fn}': {fallback_error}")
+                
+                if not success:
+                    print(f"💥 Failed to load '{fn}' with any available loader")
 
-        print(f"Loaded {len(documents)} documents")
+        print(f"📚 Document loading complete: {len(documents)} total document chunks loaded")
+        
+        if len(documents) == 0:
+            print("⚠️  WARNING: No documents were successfully loaded!")
+            print("🔍 Please check:")
+            print("   - File permissions in the assets directory")
+            print("   - File formats are supported (.txt, .pdf, .docx)")
+            print("   - Files are not corrupted")
+        
         return documents
 
         
@@ -153,8 +273,9 @@ class RAGSystem:
         llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash-preview-05-20",
             temperature=0.3,  # Lower temperature for more focused responses
-            streaming=False,  # Disable streaming
-            system_instruction="""You are a helpful AI assistant that provides comprehensive answers using both document context and relevant general knowledge.
+            disable_streaming=False,  # Disable streaming
+            model_kwargs={
+                "system_instruction": """You are a helpful AI assistant that provides comprehensive answers using both document context and relevant general knowledge.
 
 HYBRID RESPONSE STRATEGY:
 1. ALWAYS start by analyzing the provided document context
@@ -197,6 +318,7 @@ RESPONSE TEMPLATE:
 [Concise summary combining document info and any supplemental details]
 
 Remember: Only provide general knowledge that directly relates to topics already mentioned in the documents."""
+            }
         )
         
         # Set up conversation memory to maintain context across questions
