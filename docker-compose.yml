@@ -2,7 +2,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./Dockerfile
     ports:
       - "5000:5000"
     env_file:
@@ -10,12 +10,15 @@ services:
     volumes:
       - ./faiss_index:/app/faiss_index
       - ./assets:/app/assets
-      - .:/app  # Mount the source code as a volume
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      test: ["CMD-SHELL", "curl -f http://localhost:5000 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     # cpus: 1.0
     # mem_limit: 512m
     # mem_reservation: 256m
