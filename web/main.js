@@ -105,7 +105,7 @@ function addMessage(text, isUser = false, responseData = null) {
     contentDiv.innerHTML = md.render(text);
     
     if (responseData) {
-      addHybridIndicators(contentDiv, responseData);
+      // addHybridIndicators(contentDiv, responseData);
     }
   }
   

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RAG Q&A System</title>
+  <title>Goama Technical Assistant</title>
   <link rel="stylesheet" href="/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,8 +17,8 @@
     <header class="app-header">
       <div class="header-content">
         <div class="logo-section">
-          <div class="logo-icon">🤖</div>
-          <h1>Document Q&A Assistant</h1>
+          <div class="logo-icon">🎮</div>
+          <h1>Goama Technical Assistant</h1>
         </div>
         <div class="header-actions">
           <button class="btn-secondary" id="clearChat">Clear Chat</button>
@@ -35,18 +35,27 @@
       <div class="chat-container">
         <!-- Welcome Message -->
         <div class="welcome-message" id="welcomeMessage">
-          <div class="welcome-icon">📚</div>
-          <h2>Welcome to your Document Assistant</h2>
-          <p>Ask me anything about your documents. I'll provide detailed, well-sourced answers based on the content available.</p>
+          <div class="welcome-icon">🎮</div>
+          <h2>Welcome to Goama Technical Assistant</h2>
+          <p>I'm here to help you with gaming platform integrations, tournament systems, and technical implementations. Ask me anything!</p>
           <div class="quick-actions">
-            <button class="quick-action-btn" data-question="What are the main topics covered in the documents?">
-              📋 Main Topics
+            <button class="quick-action-btn" data-question="What are the main features of the Goama platform?">
+              🎯 Platform Features
             </button>
             <button class="quick-action-btn" data-question="How can I integrate with the platform?">
-              🔗 Integration Guide
+              🔗 Platform Integration Guide
             </button>
-            <button class="quick-action-btn" data-question="What are the key features available?">
-              ⭐ Key Features
+            <!-- <button class="quick-action-btn" data-question="How do I implement tournament functionality?">
+              🏆 Tournament Setup
+            </button> -->
+            <button class="quick-action-btn" data-question="How can I do a simple integration of Goama with my existing website? give me simple code snippets">
+              🏆 Simple Integration Guide
+            </button>
+            <button class="quick-action-btn" data-question="Give me simple guide & code snippets for game integration">
+              🎮 Game Integration Guide for Devs
+            </button>
+            <button class="quick-action-btn" data-question="What are the available configuration options for features and functions existing within the Goama Tournament Platform">
+              ⚙️ Configuration Guide for TMs
             </button>
           </div>
         </div>
@@ -78,7 +87,7 @@
             <textarea 
               name="prompt" 
               id="promptInput"
-              placeholder="Ask a question about your documents..." 
+              placeholder="Ask me about gaming platform integrations or technical implementations..." 
               rows="1"
               maxlength="2000"
             ></textarea>

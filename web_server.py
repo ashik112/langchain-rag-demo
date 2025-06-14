@@ -86,33 +86,9 @@ def query_rag():
         
         print(f"🏷️  Document topics identified: {document_topics}")
         
-        # Step 3: Create enhanced sources section with topic context
-        # This shows users what topics their documents cover
-        if sources_info:
-            sources_text = "\n\n## 📚 Sources from Your Documents\n\n"
-            
-            # Group sources by document for better organization
-            unique_sources = {}
-            for source in sources_info:
-                source_name = source['source']
-                if source_name not in unique_sources:
-                    unique_sources[source_name] = []
-                unique_sources[source_name].append(source)
-            
-            # Format source information clearly
-            for source_name, chunks in unique_sources.items():
-                sources_text += f"**📄 {source_name}**\n"
-                for chunk in chunks:
-                    if chunk['summary']:
-                        sources_text += f"- {chunk['summary']}\n"
-                sources_text += "\n"
-            
-            # Add topic coverage information
-            if document_topics:
-                sources_text += f"**🏷️ Topics covered in your documents:** {', '.join(sorted(document_topics))}\n\n"
-            
-            # Append sources to the main answer
-            answer += sources_text
+        # Step 3: Keep the answer clean without source references
+        # The AI will respond naturally without mentioning documents
+        # (Sources are still tracked internally for debugging/analytics)
         
         # Step 4: Calculate token usage for cost tracking and optimization
         # This helps users understand the computational cost of their queries
@@ -176,8 +152,8 @@ def query_rag():
         else:
             response_type = "hybrid"
         
-        print(f"📊 Response type: {response_type}")
-        print(f"✅ Sending response with {len(source_documents)} source documents")
+        app.logger.debug(f"Response type: {response_type}")
+        app.logger.debug(f"Sending response with {len(source_documents)} source documents")
         
         # Step 6: Return structured response with all metadata including token usage
         return jsonify({
@@ -193,8 +169,23 @@ def query_rag():
         })
         
     except Exception as e:
-        print(f"❌ Error in query_rag: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Error processing RAG request: {str(e)}", exc_info=True)
+        return jsonify({
+            'error': str(e),
+            'details': {
+                'type': type(e).__name__,
+                'message': str(e),
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, threaded=True) 
+    app.logger.info("Starting Flask server in debug mode")
+    app.run(
+        host="0.0.0.0", 
+        port=5000, 
+        debug=True, 
+        threaded=True,
+        use_reloader=True,
+        extra_files=['main.py', 'rag_system.py']
+    ) 
