@@ -23,7 +23,7 @@ from threading import Lock
 load_dotenv()
 
 class RAGSystem:
-    def __init__(self, assets_dir: str = Optional[str] = None):
+    def __init__(self, assets_dir: Optional[str] = None):
         """Initialize the RAG system.
         
         Args:
