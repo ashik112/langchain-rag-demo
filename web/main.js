@@ -1,4 +1,4 @@
-import { queryRAG } from './rag-api.js';
+import { queryRAG, initializeSession, destroySession } from './rag-api.js';
 
 // DOM Elements
 let form = document.querySelector('#chatForm');
@@ -60,13 +60,13 @@ function setLoading(loading) {
   const statusDot = statusIndicator.querySelector('.status-dot');
   
   if (loading) {
-    statusText.textContent = 'Analyzing documents...';
+    statusText.textContent = 'Thinking...';
     statusDot.style.background = 'var(--warning-color)';
     
     // Update loading message text for better UX
     const loadingText = loadingIndicator.querySelector('.loading-text');
     if (loadingText) {
-      loadingText.textContent = 'Searching documents and preparing response...';
+      loadingText.textContent = 'Thinking and preparing response...';
     }
   } else {
     statusText.textContent = 'Ready';
@@ -176,11 +176,52 @@ function addHybridIndicators(contentDiv, responseData) {
   contentDiv.insertBefore(indicatorContainer, contentDiv.firstChild);
 }
 
-// Clear chat
-function clearChat() {
-  chatHistory.innerHTML = '';
-  messageCount = 0;
-  showWelcomeMessage();
+// Initialize session when page loads
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('🌟 Page loaded, initializing session...');
+  
+  try {
+    await initializeSession();
+    
+    // Update status indicator
+    const statusText = statusIndicator.querySelector('.status-text');
+    const statusDot = statusIndicator.querySelector('.status-dot');
+    statusText.textContent = 'Ready';
+    statusDot.style.background = 'var(--success-color)';
+    
+    console.log('✅ Session ready for chat');
+  } catch (error) {
+    console.error('❌ Failed to initialize session:', error);
+    
+    // Update status to show error
+    const statusText = statusIndicator.querySelector('.status-text');
+    const statusDot = statusIndicator.querySelector('.status-dot');
+    statusText.textContent = 'Connection Error';
+    statusDot.style.background = 'var(--error-color)';
+    
+    // Show error message to user
+    addMessage('❌ Failed to initialize chat session. Please reload the page.', false);
+  }
+});
+
+// Clear chat and destroy session
+async function clearChat() {
+  try {
+    // Destroy current session
+    await destroySession();
+    // Create new session
+    await initializeSession();
+    
+    // Clear UI
+    chatHistory.innerHTML = '';
+    messageCount = 0;
+    showWelcomeMessage();
+    
+    console.log('🧹 Chat cleared and new session created');
+  } catch (error) {
+    console.error('❌ Error clearing chat and session:', error);
+    addMessage('❌ Error clearing chat. Please reload the page.', false);
+  }
 }
 
 // Handle form submission with enhanced response processing

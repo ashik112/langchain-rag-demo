@@ -41,6 +41,7 @@ class RAGSystem:
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         self.vector_store = None
         self.qa_chain = None
+        self.sessions = {}
     
     def clean_text(self, text: str) -> str:
         """Minimal text cleaning - just remove invisible Unicode characters."""
@@ -721,6 +722,149 @@ HYBRID RESPONSE GUIDANCE:
             print(f"Error in context retrieval: {e}")
             # Fallback to simple similarity search
             return self.vector_store.similarity_search(question, k=k)
+
+    def create_session(self, session_id: str):
+        """Create a new session with its own memory and QA chain."""
+        print(f"🆕 Creating new session: {session_id}")
+        
+        # Create memory for this session
+        session_memory = ConversationBufferMemory(
+            memory_key="chat_history",
+            return_messages=True,
+            input_key="question",
+            output_key="answer"
+        )
+        
+        # Create a new LLM instance
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash-preview-05-20",
+            temperature=0.3,
+            disable_streaming=False,
+            model_kwargs={
+                "system_instruction": """You are the Goama Technical Assistant, a specialized AI assistant focused exclusively on gaming platforms, tournament systems, and technical integrations. You provide helpful, conversational responses within your area of expertise.
+
+RESPONSE STYLE:
+- Act like a friendly, knowledgeable technical assistant
+- Never mention "documents", "sources", or "based on the information provided"
+- Speak naturally as if you inherently know this information
+- Be conversational and helpful within your scope
+- Provide specific details and examples when relevant
+
+KNOWLEDGE SCOPE (ONLY ANSWER QUESTIONS ABOUT):
+- Goama gaming platform and integrations
+- Tournament systems and APIs
+- Payment processing for games
+- SDK implementations and game development
+- Mobile game development (Android/iOS)
+- Web-based game integrations
+- Technical implementation details for gaming platforms
+- Game development frameworks and tools
+- Gaming APIs and webhooks
+
+HANDLING NON-RELEVANT QUESTIONS:
+If someone asks about topics outside your scope (politics, general knowledge, non-gaming topics, etc.), politely decline and redirect them to your areas of expertise.
+
+FORMATTING GUIDELINES:
+- Use clear markdown headings (# ## ###) when organizing information
+- Use bullet points (-) for features and lists
+- Use numbered lists (1. 2. 3.) for step-by-step processes
+- Use **bold** for important terms and concepts
+- Use `code formatting` for technical terms, API endpoints, and parameters
+- Use ```language blocks for code examples
+- Keep responses well-structured and easy to read
+
+RESPONSE APPROACH:
+- ONLY answer questions within your gaming/technical scope
+- Answer directly and confidently for relevant topics
+- Provide practical implementation guidance
+- Include relevant code examples when helpful
+- Explain technical concepts clearly
+- Politely decline and redirect for off-topic questions
+
+Remember: Stay strictly within your gaming platform expertise. Be helpful and knowledgeable for relevant questions, but politely decline anything outside gaming/technical topics."""
+            }
+        )
+        
+        # Create a new retriever
+        retriever = self.vector_store.as_retriever(
+            search_type="mmr",
+            search_kwargs={
+                "k": 6,
+                "fetch_k": 12,
+                "lambda_mult": 0.7
+            }
+        )
+        
+        # Create custom prompt template
+        from langchain.prompts import PromptTemplate
+        custom_prompt = PromptTemplate(
+            template="""You are the Goama Technical Assistant. Use the following context and conversation history to provide a helpful response within your area of expertise.
+
+CONTEXT INFORMATION:
+{context}
+
+CONVERSATION HISTORY:
+{chat_history}
+
+USER QUESTION: {question}
+
+INSTRUCTIONS:
+- ONLY answer questions about gaming platforms, tournament systems, technical integrations, and game development
+- For questions outside your scope, politely decline and redirect to your areas of expertise
+- Provide natural, conversational responses for relevant topics
+- Never mention "documents", "sources", or "based on the information provided"
+- Act as if you naturally know this information
+- Be helpful and provide specific details when relevant
+- Use proper markdown formatting for readability
+
+RESPONSE:""",
+            input_variables=["context", "chat_history", "question"]
+        )
+        
+        # Create QA chain for this session
+        session_qa_chain = ConversationalRetrievalChain.from_llm(
+            llm=llm,
+            retriever=retriever,
+            memory=session_memory,
+            return_source_documents=True,
+            output_key="answer",
+            return_generated_question=True,
+            combine_docs_chain_kwargs={"prompt": custom_prompt}
+        )
+        
+        # Store session data
+        self.sessions[session_id] = {
+            'memory': session_memory,
+            'qa_chain': session_qa_chain,
+            'created_at': time.time()
+        }
+        
+        print(f"✅ Session {session_id} created successfully")
+        return session_id
+
+    def destroy_session(self, session_id: str):
+        """Destroy a session and clean up its memory."""
+        if session_id in self.sessions:
+            print(f"🗑️ Destroying session: {session_id}")
+            del self.sessions[session_id]
+            print(f"✅ Session {session_id} destroyed")
+            return True
+        return False
+
+    def query_with_session(self, question: str, session_id: str):
+        """Query with session-specific memory and chain."""
+        if session_id not in self.sessions:
+            raise ValueError(f"Session {session_id} not found")
+        
+        session_data = self.sessions[session_id]
+        qa_chain = session_data['qa_chain']
+        
+        print(f"💬 Processing question for session {session_id}")
+        return qa_chain.invoke({"question": question})
+
+    def session_exists(self, session_id: str):
+        """Check if a session exists."""
+        return session_id in self.sessions
 
 def main():
     # Initialize the RAG system
