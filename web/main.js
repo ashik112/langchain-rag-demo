@@ -1,4 +1,4 @@
-import { queryRAG, initializeSession, destroySession } from './rag-api.js';
+import { queryRAG, initializeSession, destroySession, storeChatMessage, clearChatHistory } from './rag-api.js';
 
 // DOM Elements
 let form = document.querySelector('#chatForm');
@@ -89,7 +89,7 @@ function showWelcomeMessage() {
 }
 
 // Add message to chat with enhanced hybrid response handling
-function addMessage(text, isUser = false, responseData = null) {
+function addMessage(text, isUser = false, responseData = null, storeInHistory = true) {
   hideWelcomeMessage();
   messageCount++;
   
@@ -112,12 +112,21 @@ function addMessage(text, isUser = false, responseData = null) {
   messageDiv.appendChild(contentDiv);
   chatHistory.appendChild(messageDiv);
   
+  // Store message in localStorage (unless it's being restored)
+  if (storeInHistory && typeof window.storeChatMessage === 'function') {
+    window.storeChatMessage(text, isUser, responseData);
+  }
+  
   setTimeout(() => {
     chatHistory.scrollTop = chatHistory.scrollHeight;
   }, 100);
   
   return messageDiv;
 }
+
+// Make functions available globally for chat history restoration
+window.addMessage = addMessage;
+window.storeChatMessage = storeChatMessage;
 
 // Add indicators for hybrid responses to show users what type of response they received
 function addHybridIndicators(contentDiv, responseData) {
@@ -204,12 +213,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// Clear chat and destroy session
+// Clear chat and create new session
 async function clearChat() {
   try {
-    // Destroy current session
+    // Destroy current session and create new one
     await destroySession();
-    // Create new session
     await initializeSession();
     
     // Clear UI
@@ -217,10 +225,13 @@ async function clearChat() {
     messageCount = 0;
     showWelcomeMessage();
     
+    // Clear stored chat history (destroySession already does this, but being explicit)
+    clearChatHistory();
+    
     console.log('🧹 Chat cleared and new session created');
   } catch (error) {
     console.error('❌ Error clearing chat and session:', error);
-    addMessage('❌ Error clearing chat. Please reload the page.', false);
+    addMessage('❌ Error clearing chat. Please reload the page.', false, null, false);
   }
 }
 

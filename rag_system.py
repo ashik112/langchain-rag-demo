@@ -1,6 +1,6 @@
 import os
 import re
-from typing import List
+from typing import List, Optional
 from dotenv import load_dotenv
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -16,12 +16,14 @@ from langchain_community.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 import time
+import threading
+from threading import Lock
 
 # Load environment variables first
 load_dotenv()
 
 class RAGSystem:
-    def __init__(self, assets_dir: str = None):
+    def __init__(self, assets_dir: str = Optional[str] = None):
         """Initialize the RAG system.
         
         Args:
@@ -42,6 +44,7 @@ class RAGSystem:
         self.vector_store = None
         self.qa_chain = None
         self.sessions = {}
+        self.sessions_lock = Lock()  # Add thread safety
     
     def clean_text(self, text: str) -> str:
         """Minimal text cleaning - just remove invisible Unicode characters."""
@@ -275,14 +278,15 @@ class RAGSystem:
         print(f"⚠️  No vector store found at '{store_path}'")
         return False
     
-    def setup_qa_chain(self):
-        """Set up the question-answering chain with hybrid document + general knowledge approach."""
-        # Initialize the language model with hybrid system prompt
-        # This allows the AI to provide relevant general knowledge when documents are incomplete
-        llm = ChatGoogleGenerativeAI(
+    def setup_shared_components(self):
+        """Set up shared LLM, retriever, and prompt - no QA chain."""
+        print("🔧 Setting up shared components for sessions...")
+        
+        # Create shared LLM (used by all sessions)
+        self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash-preview-05-20",
-            temperature=0.3,  # Lower temperature for more focused responses
-            disable_streaming=False,  # Disable streaming
+            temperature=0.3,
+            disable_streaming=False,
             model_kwargs={
                 "system_instruction": """You are the Goama Technical Assistant, a specialized AI assistant focused exclusively on gaming platforms, tournament systems, and technical integrations. You provide helpful, conversational responses within your area of expertise.
 
@@ -332,31 +336,17 @@ Remember: Stay strictly within your gaming platform expertise. Be helpful and kn
             }
         )
         
-        # Set up conversation memory to maintain context across questions
-        # This helps the AI understand the ongoing conversation and document scope
-        memory = ConversationBufferMemory(
-            memory_key="chat_history",
-            return_messages=True,
-            input_key="question",
-            output_key="answer" 
+       # Create shared retriever (used by all sessions)
+        if self.vector_store is None:
+            raise ValueError("Vector store is not initialized. Please create or load the vector store before setting up shared components.")
+        self.retriever = self.vector_store.as_retriever(
+            search_type="mmr",
+            search_kwargs={"k": 6, "fetch_k": 12, "lambda_mult": 0.7}
         )
         
-        # Create a sophisticated retriever that finds diverse, relevant content
-        # MMR (Maximum Marginal Relevance) balances relevance with diversity
-        base_retriever = self.vector_store.as_retriever(
-            search_type="mmr",  # Maximum Marginal Relevance for diversity
-            search_kwargs={
-                "k": 6,  # Get more chunks initially for better context
-                "fetch_k": 12,  # Fetch more candidates for MMR selection
-                "lambda_mult": 0.7  # Balance between relevance (1.0) and diversity (0.0)
-            }
-        )
-        
-        # Create custom prompt template for hybrid responses
-        # This template guides the AI to properly combine document and general knowledge
+        # Create shared prompt (used by all sessions)
         from langchain.prompts import PromptTemplate
-        
-        custom_prompt = PromptTemplate(
+        self.prompt = PromptTemplate(
             template="""You are the Goama Technical Assistant. Use the following context and conversation history to provide a helpful response within your area of expertise.
 
 CONTEXT INFORMATION:
@@ -387,18 +377,7 @@ RESPONSE:""",
             input_variables=["context", "chat_history", "question"]
         )
         
-        # Create the conversational QA chain with hybrid capabilities
-        # This chain combines document retrieval with conversational memory
-        self.qa_chain = ConversationalRetrievalChain.from_llm(
-            llm=llm,
-            retriever=base_retriever,
-            memory=memory,
-            return_source_documents=True,  # Include source docs for transparency
-            output_key="answer",
-            return_generated_question=True,  # Help with follow-up questions
-            combine_docs_chain_kwargs={"prompt": custom_prompt}  # Use our hybrid prompt
-        )
-    
+        print("✅ Shared components ready")
     def analyze_query_intent(self, question: str) -> dict:
         """
         Analyze the user's query to determine intent and suggest response strategy.
@@ -604,6 +583,8 @@ HYBRID RESPONSE GUIDANCE:
         print(f"📏 Estimated input tokens: {estimated_input_tokens}")
         
         # Step 5: Get response from QA chain and measure output
+        if self.qa_chain is None:
+            raise ValueError("QA chain is not initialized. Please set up the QA chain before invoking a response.")
         response = self.qa_chain.invoke({"question": question})
         
         # Calculate output token count
@@ -723,148 +704,102 @@ HYBRID RESPONSE GUIDANCE:
             # Fallback to simple similarity search
             return self.vector_store.similarity_search(question, k=k)
 
+    
     def create_session(self, session_id: str):
-        """Create a new session with its own memory and QA chain."""
-        print(f"🆕 Creating new session: {session_id}")
-        
-        # Create memory for this session
-        session_memory = ConversationBufferMemory(
-            memory_key="chat_history",
-            return_messages=True,
-            input_key="question",
-            output_key="answer"
-        )
-        
-        # Create a new LLM instance
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash-preview-05-20",
-            temperature=0.3,
-            disable_streaming=False,
-            model_kwargs={
-                "system_instruction": """You are the Goama Technical Assistant, a specialized AI assistant focused exclusively on gaming platforms, tournament systems, and technical integrations. You provide helpful, conversational responses within your area of expertise.
-
-RESPONSE STYLE:
-- Act like a friendly, knowledgeable technical assistant
-- Never mention "documents", "sources", or "based on the information provided"
-- Speak naturally as if you inherently know this information
-- Be conversational and helpful within your scope
-- Provide specific details and examples when relevant
-
-KNOWLEDGE SCOPE (ONLY ANSWER QUESTIONS ABOUT):
-- Goama gaming platform and integrations
-- Tournament systems and APIs
-- Payment processing for games
-- SDK implementations and game development
-- Mobile game development (Android/iOS)
-- Web-based game integrations
-- Technical implementation details for gaming platforms
-- Game development frameworks and tools
-- Gaming APIs and webhooks
-
-HANDLING NON-RELEVANT QUESTIONS:
-If someone asks about topics outside your scope (politics, general knowledge, non-gaming topics, etc.), politely decline and redirect them to your areas of expertise.
-
-FORMATTING GUIDELINES:
-- Use clear markdown headings (# ## ###) when organizing information
-- Use bullet points (-) for features and lists
-- Use numbered lists (1. 2. 3.) for step-by-step processes
-- Use **bold** for important terms and concepts
-- Use `code formatting` for technical terms, API endpoints, and parameters
-- Use ```language blocks for code examples
-- Keep responses well-structured and easy to read
-
-RESPONSE APPROACH:
-- ONLY answer questions within your gaming/technical scope
-- Answer directly and confidently for relevant topics
-- Provide practical implementation guidance
-- Include relevant code examples when helpful
-- Explain technical concepts clearly
-- Politely decline and redirect for off-topic questions
-
-Remember: Stay strictly within your gaming platform expertise. Be helpful and knowledgeable for relevant questions, but politely decline anything outside gaming/technical topics."""
+        """Thread-safe session creation."""
+        with self.sessions_lock:
+            if session_id in self.sessions:
+                print(f"⚠️ Session {session_id} already exists")
+                return session_id
+                
+            print(f"🆕 Creating session: {session_id}")
+            
+            # Create session memory
+            session_memory = ConversationBufferMemory(
+                memory_key="chat_history",
+                return_messages=True,
+                input_key="question",
+                output_key="answer"
+            )
+            
+            # Create QA chain using shared components
+            session_qa_chain = ConversationalRetrievalChain.from_llm(
+                llm=self.llm,           # Shared
+                retriever=self.retriever, # Shared
+                memory=session_memory,    # Session-specific
+                return_source_documents=True,
+                output_key="answer",
+                combine_docs_chain_kwargs={"prompt": self.prompt}  # Shared
+            )
+            
+            self.sessions[session_id] = {
+                'qa_chain': session_qa_chain,
+                'created_at': time.time(),
+                'lock': Lock()  # Per-session lock for queries
             }
-        )
-        
-        # Create a new retriever
-        retriever = self.vector_store.as_retriever(
-            search_type="mmr",
-            search_kwargs={
-                "k": 6,
-                "fetch_k": 12,
-                "lambda_mult": 0.7
-            }
-        )
-        
-        # Create custom prompt template
-        from langchain.prompts import PromptTemplate
-        custom_prompt = PromptTemplate(
-            template="""You are the Goama Technical Assistant. Use the following context and conversation history to provide a helpful response within your area of expertise.
-
-CONTEXT INFORMATION:
-{context}
-
-CONVERSATION HISTORY:
-{chat_history}
-
-USER QUESTION: {question}
-
-INSTRUCTIONS:
-- ONLY answer questions about gaming platforms, tournament systems, technical integrations, and game development
-- For questions outside your scope, politely decline and redirect to your areas of expertise
-- Provide natural, conversational responses for relevant topics
-- Never mention "documents", "sources", or "based on the information provided"
-- Act as if you naturally know this information
-- Be helpful and provide specific details when relevant
-- Use proper markdown formatting for readability
-
-RESPONSE:""",
-            input_variables=["context", "chat_history", "question"]
-        )
-        
-        # Create QA chain for this session
-        session_qa_chain = ConversationalRetrievalChain.from_llm(
-            llm=llm,
-            retriever=retriever,
-            memory=session_memory,
-            return_source_documents=True,
-            output_key="answer",
-            return_generated_question=True,
-            combine_docs_chain_kwargs={"prompt": custom_prompt}
-        )
-        
-        # Store session data
-        self.sessions[session_id] = {
-            'memory': session_memory,
-            'qa_chain': session_qa_chain,
-            'created_at': time.time()
-        }
-        
-        print(f"✅ Session {session_id} created successfully")
-        return session_id
-
+            
+            print(f"✅ Session {session_id} ready")
+            return session_id
+    
     def destroy_session(self, session_id: str):
-        """Destroy a session and clean up its memory."""
-        if session_id in self.sessions:
-            print(f"🗑️ Destroying session: {session_id}")
-            del self.sessions[session_id]
-            print(f"✅ Session {session_id} destroyed")
-            return True
-        return False
-
+        """Thread-safe session destruction."""
+        with self.sessions_lock:
+            if session_id in self.sessions:
+                print(f"🗑️ Destroying session: {session_id}")
+                del self.sessions[session_id]
+                return True
+            return False
+    
     def query_with_session(self, question: str, session_id: str):
-        """Query with session-specific memory and chain."""
-        if session_id not in self.sessions:
-            raise ValueError(f"Session {session_id} not found")
+        """Thread-safe session query."""
+        # Get session (thread-safe read)
+        with self.sessions_lock:
+            if session_id not in self.sessions:
+                raise ValueError(f"Session {session_id} not found")
+            session_data = self.sessions[session_id].copy()  # Get a copy to avoid holding lock
         
-        session_data = self.sessions[session_id]
-        qa_chain = session_data['qa_chain']
-        
-        print(f"💬 Processing question for session {session_id}")
-        return qa_chain.invoke({"question": question})
-
+        # Use session-specific lock for the actual query
+        with session_data['lock']:
+            qa_chain = session_data['qa_chain']
+            print(f"💬 Processing question for session {session_id}")
+            return qa_chain.invoke({"question": question})
+    
     def session_exists(self, session_id: str):
-        """Check if a session exists."""
-        return session_id in self.sessions
+        """Thread-safe session check."""
+        with self.sessions_lock:
+            return session_id in self.sessions
+    
+    def get_session_count(self):
+        """Get the number of active sessions."""
+        with self.sessions_lock:
+            return len(self.sessions)
+    
+    def get_session_info(self):
+        """Get information about all active sessions."""
+        with self.sessions_lock:
+            return {
+                session_id: {
+                    'created_at': data['created_at'],
+                    'age_seconds': time.time() - data['created_at']
+                }
+                for session_id, data in self.sessions.items()
+            }
+    
+    def cleanup_old_sessions(self, max_age_seconds=3600):
+        """Clean up sessions older than max_age_seconds (default 1 hour)."""
+        current_time = time.time()
+        sessions_to_remove = []
+        
+        with self.sessions_lock:
+            for session_id, data in self.sessions.items():
+                if current_time - data['created_at'] > max_age_seconds:
+                    sessions_to_remove.append(session_id)
+            
+            for session_id in sessions_to_remove:
+                print(f"🧹 Cleaning up old session: {session_id}")
+                del self.sessions[session_id]
+        
+        return len(sessions_to_remove)
 
 def main():
     # Initialize the RAG system
@@ -877,8 +812,8 @@ def main():
         chunks = rag.process_documents(documents)
         rag.create_vector_store(chunks)
     
-    # Set up the QA chain
-    rag.setup_qa_chain()
+    # Set up shared components for sessions
+    rag.setup_shared_components()
     
     # Interactive query loop
     print("\nRAG System Ready! Type 'exit' to quit.")

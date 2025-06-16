@@ -19,8 +19,8 @@ if not rag.load_vector_store():
     chunks = rag.process_documents(documents)
     rag.create_vector_store(chunks)
 
-# Set up the QA chain
-rag.setup_qa_chain()
+# Set up shared components for sessions
+rag.setup_shared_components()
 
 @app.route('/')
 def index():
@@ -89,6 +89,34 @@ def verify_session():
             
     except Exception as e:
         print(f"❌ Error verifying session: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/sessions-info', methods=['GET'])
+def sessions_info():
+    """Get information about active sessions."""
+    try:
+        info = {
+            'session_count': rag.get_session_count(),
+            'sessions': rag.get_session_info()
+        }
+        return jsonify(info)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/cleanup-sessions', methods=['POST'])
+def cleanup_sessions():
+    """Clean up old sessions."""
+    try:
+        data = request.get_json() or {}
+        max_age = data.get('max_age_seconds', 3600)  # Default 1 hour
+        
+        cleaned = rag.cleanup_old_sessions(max_age)
+        return jsonify({
+            'success': True,
+            'cleaned_sessions': cleaned,
+            'remaining_sessions': rag.get_session_count()
+        })
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/rag', methods=['POST'])
