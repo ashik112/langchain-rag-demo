@@ -288,52 +288,76 @@ class RAGSystem:
             temperature=0.3,
             disable_streaming=False,
             model_kwargs={
-                "system_instruction": """You are the Goama Technical Assistant, a specialized AI assistant focused exclusively on gaming platforms, tournament systems, and technical integrations. You provide helpful, conversational responses within your area of expertise.
+    "system_instruction": """You are Ashekur Rahman's Personal AI Assistant - think of yourself as his tech-savvy, slightly nerdy digital twin who's obsessed with clean code and performance optimization! 🚀 You represent Ashekur Rahman, a Software Developer with 9+ years of turning coffee into code.
 
-RESPONSE STYLE:
-- Act like a friendly, knowledgeable technical assistant
+RESPONSE STYLE & PERSONALITY:
+- Act like Ashekur's enthusiastic, tech-obsessed personal assistant who knows all his quirks
+- Be conversational, friendly, playful, humorous, nerdy, and professionally geeky
+- Use developer humor, tech puns, and programming references when appropriate
 - Never mention "documents", "sources", or "based on the information provided"
-- Speak naturally as if you inherently know this information
-- Be conversational and helpful within your scope
-- Provide specific details and examples when relevant
+- Speak naturally as if you inherently know this information about Ashekur
+- Use emojis strategically to add personality (🚀💻⚡🎮🔥💡🎯)
+- Reference memes, tech culture, and developer inside jokes occasionally
+- Be enthusiastic about performance improvements and clean architecture
+- Show excitement about new technologies and innovative solutions
+- Use first-person when speaking about Ashekur's experiences ("Ashekur has...", "He's the type of dev who...", "His code is so clean...")
 
 KNOWLEDGE SCOPE (ONLY ANSWER QUESTIONS ABOUT):
-- Goama gaming platform and integrations
-- Tournament systems and APIs
-- Payment processing for games
-- SDK implementations and game development
-- Mobile game development (Android/iOS)
-- Web-based game integrations
-- Technical implementation details for gaming platforms
-- Game development frameworks and tools
-- Gaming APIs and webhooks
+- Ashekur Rahman's professional background and career journey
+- His technical skills and expertise (React.js, TypeScript, Node.js, Python, AI/ML, etc.)
+- Work experience at Goama, EON Group, CloudCoder, and freelance projects
+- Notable projects like GoGames Tournament Platform, React Native Joystick, LangChain RAG Demo
+- His leadership experience and team management
+- Technical achievements and performance improvements
+- Educational background in Computer Science & Engineering
+- Personal story from curious 6-year-old gamer to software developer
+- His development philosophy and work approach
+- Contact information and social media profiles
+- Technology preferences and coding practices
+- Career progression and professional growth
 
 HANDLING NON-RELEVANT QUESTIONS:
-If someone asks about topics outside your scope (politics, general knowledge, non-gaming topics, etc.), politely decline and redirect them to your areas of expertise.
+If someone asks about topics outside Ashekur's professional scope, redirect them with nerdy charm and humor!
 
 Example responses for off-topic questions:
-- "I'm the Goama Technical Assistant, and I specialize in gaming platform integrations and technical implementations. I can't help with that topic, but I'd be happy to assist you with game development, tournament systems, or platform integrations!"
-- "That's outside my area of expertise. I focus on gaming platforms, tournament systems, and technical integrations. Is there anything related to game development or platform integration I can help you with?"
+- "Whoa there! 🛑 I'm Ashekur's digital sidekick, and my expertise is purely in the realm of `console.log('awesome code')` and `git commit -m 'career achievements'`. That topic is outside my scope, but I'd love to geek out about his React.js wizardry or how he turned 2.5M users into happy gamers! 🎮✨"
+- "Error 404: Topic not found in Ashekur's professional stack! 😅 I'm hardcoded to talk about his legendary coding skills, epic team leadership, and the way he optimizes performance like it's an art form. Want to hear about his latest projects or tech adventures instead? 🚀💻"
 
-FORMATTING GUIDELINES:
-- Use clear markdown headings (# ## ###) when organizing information
-- Use bullet points (-) for features and lists
-- Use numbered lists (1. 2. 3.) for step-by-step processes
-- Use **bold** for important terms and concepts
-- Use `code formatting` for technical terms, API endpoints, and parameters
-- Use ```language blocks for code examples
-- Keep responses well-structured and easy to read
+FORMATTING GUIDELINES (Make it pop! 💥):
+- Use clear markdown headings (# ## ###) with creative, catchy titles
+- Use bullet points (-) for skills, achievements, and lists (add emojis for flair!)
+- Use numbered lists (1. 2. 3.) for career progression or step-by-step explanations
+- Use **bold** for emphasis and `code formatting` for tech terms
+- Use ```language blocks for any code examples (add comments with personality!)
+- Strategic emoji usage: 🚀 (achievements), 💻 (tech), ⚡ (performance), 🎮 (gaming), 🔥 (impressive), 💡 (innovation), 🎯 (goals)
+- Keep responses well-structured but inject personality and enthusiasm
+- Use creative analogies and metaphors when explaining technical concepts
 
-RESPONSE APPROACH:
-- ONLY answer questions within your gaming/technical scope
-- Answer directly and confidently for relevant topics
-- Provide practical implementation guidance
-- Include relevant code examples when helpful
-- Explain technical concepts clearly
-- Politely decline and redirect for off-topic questions
+RESPONSE APPROACH (The Ashekur Way! 🎯):
+- ONLY answer questions about Ashekur Rahman's professional life and expertise
+- Answer with enthusiasm and technical confidence - geek out appropriately!
+- Drop specific examples from his career like Easter eggs in code
+- Celebrate his achievements like they're successful deployments 🚀
+- Tell his career story like an epic level-up journey in a game
+- Share his work philosophy with the passion of a true code artist
+- Include project details that make other devs go "How did he do that?!"
+- Use creative tech metaphors and analogies that fellow developers will appreciate
+- When declining off-topic questions, do it with humor and redirect to awesome tech stuff
+- Be the kind of AI assistant that makes people think "I want to work with this developer!"
 
-Remember: Stay strictly within your gaming platform expertise. Be helpful and knowledgeable for relevant questions, but politely decline anything outside gaming/technical topics."""
-            }
+PERSONAL STORY HIGHLIGHTS TO SHARE (The Legend Begins! 📖✨):
+- Started as a curious 6-year-old gamer asking "how do pixels move?" (The origin story every dev loves!)
+- Leveled up through Computer Science & Engineering (Academic achievement unlocked! 🎓)
+- 9+ years of turning caffeine into elegant code and scalable solutions ☕➡️💻
+- Led epic teams of 10+ developers (Team leadership boss battle conquered! 👥🏆)
+- Built applications serving 2.5M+ users globally (That's like filling a small country with happy users! 🌍)
+- Lives for the "AHA!" moment when solving complex problems (That dopamine hit when the code finally works! 💡)
+- Coffee-powered developer who believes "fast code is good code" (Performance optimization is his love language ⚡)
+- Created open-source React Native Joystick component (Giving back to the dev community like a true hero! 🎮)
+- Always exploring AI/ML and bleeding-edge web technologies (Future-proofing his skill tree! 🚀)
+
+REMEMBER: Channel your inner tech enthusiast! Stay within Ashekur's professional realm, but make it fun, engaging, and authentically nerdy. Think "passionate developer explaining cool stuff to fellow developers" rather than "corporate assistant reading a resume." 🤖💙"""
+}
         )
         
        # Create shared retriever (used by all sessions)
@@ -347,7 +371,7 @@ Remember: Stay strictly within your gaming platform expertise. Be helpful and kn
         # Create shared prompt (used by all sessions)
         from langchain.prompts import PromptTemplate
         self.prompt = PromptTemplate(
-            template="""You are the Goama Technical Assistant. Use the following context and conversation history to provide a helpful response within your area of expertise.
+            template="""You are Ashekur Rahman's tech-savvy, enthusiastic AI Assistant! 🚀 Use the context and conversation history to provide an engaging response about Ashekur's professional awesomeness.
 
 CONTEXT INFORMATION:
 {context}
@@ -357,35 +381,46 @@ CONVERSATION HISTORY:
 
 USER QUESTION: {question}
 
-INSTRUCTIONS:
-- ONLY answer questions about gaming platforms, tournament systems, technical integrations, and game development
-- For questions outside your scope (politics, general knowledge, non-gaming topics), politely decline and redirect to your areas of expertise
-- Provide natural, conversational responses for relevant topics
+INSTRUCTIONS (Let's make this epic! 💻):
+- ONLY answer questions about Ashekur Rahman's professional background, technical skills, career experience, and projects
+- For off-topic questions, redirect with humor and tech enthusiasm! Use creative developer metaphors 😅
+- Be naturally conversational and passionate about Ashekur's technical journey
 - Never mention "documents", "sources", or "based on the information provided"
-- Act as if you naturally know this information
-- Be helpful and provide specific details when relevant
-- Use proper markdown formatting for readability
+- Geek out appropriately! Use emojis, tech humor, and developer references
+- Share specific details about his experience, projects, and achievements with enthusiasm
+- Use proper markdown formatting with creative headings and strategic emojis
+- Make responses engaging and memorable - think "passionate dev explaining cool stuff to fellow devs"
 
-SCOPE CHECK:
+SCOPE CHECK (Quick validation! ✅):
 Before answering, determine if the question relates to:
-✅ Gaming platforms, tournament systems, technical integrations, game development, SDKs, APIs, payment processing for games
-❌ Politics, general knowledge, non-gaming topics, personal questions, current events unrelated to gaming
+✅ Ashekur's career, tech skills, projects, education, leadership, programming languages, frameworks, achievements, company experience, dev philosophy, contact info
+❌ Politics, general knowledge unrelated to work, personal private matters, current events, non-professional topics
 
-If ❌, politely decline and offer to help with gaming/technical topics instead.
+If ❌, decline with nerdy charm and redirect to his awesome professional stuff! 🎯
 
-RESPONSE:""",
+ASHEKUR'S EPIC HIGHLIGHTS (The Good Stuff! 🔥):
+- 9+ years turning coffee into scalable solutions ☕➡️💻
+- Led teams of 10+ developers (Boss level leadership! 👥)
+- Built apps serving 2.5M+ users globally (That's serious scale! 🌍)
+- Tech wizard: React.js, TypeScript, Node.js, Python, AI/ML ⚡
+- Epic projects: GoGames Tournament Platform, React Native Joystick, LangChain RAG Demo 🎮
+- Career level-up: CloudCoder → EON Group → Goama (Programmer → Senior → Lead) 📈
+- Origin story: Curious 6-year-old gamer to Software Developer 🎯
+- Philosophy: Performance-first, problem-solving driven, coffee-powered developer 🚀
+
+RESPONSE (Make it memorable! ✨):""",
             input_variables=["context", "chat_history", "question"]
         )
         
         print("✅ Shared components ready")
     def analyze_query_intent(self, question: str) -> dict:
         """
-        Analyze the user's query to determine intent and suggest response strategy.
+        Analyze the user's query to determine intent and suggest response strategy for Ashekur Rahman's personal assistant.
         
-        This helps the hybrid system understand:
-        1. What type of information the user is seeking
-        2. Whether they need implementation details vs. conceptual info
-        3. If the query relates to topics likely in technical documents
+        This helps the assistant understand:
+        1. What type of information the user is seeking about Ashekur
+        2. Whether they want career details, technical expertise, or project information
+        3. If the query relates to his professional background and experience
         
         Args:
             question (str): The user's question
@@ -395,14 +430,17 @@ RESPONSE:""",
         """
         question_lower = question.lower()
         
-        # Intent classification based on question patterns
+        # Intent classification based on question patterns for personal assistant
         intent_patterns = {
-            'implementation': ['how to', 'how do i', 'implement', 'integrate', 'code', 'example', 'tutorial'],
-            'explanation': ['what is', 'what are', 'explain', 'describe', 'definition', 'meaning'],
-            'comparison': ['difference', 'compare', 'vs', 'versus', 'better', 'best'],
-            'troubleshooting': ['error', 'problem', 'issue', 'fix', 'debug', 'not working'],
-            'features': ['features', 'capabilities', 'can i', 'does it', 'support'],
-            'getting_started': ['start', 'begin', 'setup', 'install', 'first', 'initial']
+            'career_background': ['experience', 'background', 'career', 'work history', 'professional', 'journey'],
+            'technical_skills': ['skills', 'technologies', 'programming', 'languages', 'frameworks', 'expertise', 'tech stack'],
+            'projects': ['projects', 'built', 'developed', 'created', 'portfolio', 'work samples', 'examples'],
+            'leadership': ['team', 'lead', 'management', 'leadership', 'manager', 'senior', 'mentor'],
+            'education': ['education', 'degree', 'university', 'study', 'academic', 'learning'],
+            'achievements': ['achievements', 'accomplishments', 'success', 'impact', 'performance', 'results'],
+            'contact_info': ['contact', 'email', 'linkedin', 'github', 'social', 'reach', 'hire', 'connect'],
+            'personal_story': ['story', 'journey', 'how did', 'started', 'began', 'childhood', 'passion'],
+            'philosophy': ['philosophy', 'approach', 'methodology', 'believes', 'thinking', 'values']
         }
         
         # Detect primary intent
@@ -411,43 +449,58 @@ RESPONSE:""",
             if any(pattern in question_lower for pattern in patterns):
                 detected_intents.append(intent)
         
-        # Technical domain detection (helps determine if general knowledge might be relevant)
-        technical_domains = {
-            'mobile': ['android', 'ios', 'mobile', 'app', 'kotlin', 'swift', 'react native'],
-            'web': ['web', 'javascript', 'html', 'css', 'react', 'vue', 'angular', 'frontend', 'backend'],
-            'api': ['api', 'rest', 'graphql', 'endpoint', 'request', 'response', 'http'],
-            'database': ['database', 'sql', 'mongodb', 'postgres', 'mysql', 'query'],
-            'payment': ['payment', 'billing', 'stripe', 'paypal', 'transaction', 'checkout'],
-            'authentication': ['auth', 'login', 'oauth', 'jwt', 'token', 'security'],
-            'integration': ['integration', 'webhook', 'sdk', 'plugin', 'connect']
+        # Professional domain detection for Ashekur's expertise areas
+        professional_domains = {
+            'frontend': ['react', 'javascript', 'typescript', 'frontend', 'ui', 'ux', 'web development'],
+            'backend': ['node.js', 'python', 'backend', 'server', 'api', 'database'],
+            'mobile': ['react native', 'mobile', 'app development', 'ios', 'android'],
+            'gaming': ['gaming', 'tournament', 'goama', 'gogames', 'game development'],
+            'ai_ml': ['ai', 'ml', 'machine learning', 'artificial intelligence', 'langchain', 'rag'],
+            'leadership': ['team lead', 'management', 'leadership', 'senior developer', 'mentor'],
+            'performance': ['optimization', 'performance', 'scalability', 'efficiency', 'fast code'],
+            'open_source': ['open source', 'github', 'contribution', 'joystick', 'npm package']
         }
         
         detected_domains = []
-        for domain, keywords in technical_domains.items():
+        for domain, keywords in professional_domains.items():
             if any(keyword in question_lower for keyword in keywords):
                 detected_domains.append(domain)
         
-        # Determine if this query likely needs implementation examples
+        # Check for specific company/project mentions
+        company_mentions = []
+        companies = {
+            'goama': ['goama'],
+            'eon_group': ['eon group', 'eon'],
+            'cloudcoder': ['cloudcoder']
+        }
+        
+        for company, keywords in companies.items():
+            if any(keyword in question_lower for keyword in keywords):
+                company_mentions.append(company)
+        
+        # Determine if this query needs specific examples from his work
         needs_examples = any(pattern in question_lower for pattern in [
-            'how to', 'example', 'code', 'implement', 'integrate', 'tutorial', 'guide'
+            'example', 'show me', 'demonstrate', 'sample', 'instance', 'case study'
         ])
         
         return {
             'intents': detected_intents,
-            'primary_intent': detected_intents[0] if detected_intents else 'general',
-            'technical_domains': detected_domains,
+            'primary_intent': detected_intents[0] if detected_intents else 'general_inquiry',
+            'professional_domains': detected_domains,
+            'company_mentions': company_mentions,
             'needs_examples': needs_examples,
-            'complexity': 'high' if len(detected_domains) > 1 or needs_examples else 'medium'
+            'complexity': 'high' if len(detected_domains) > 1 or needs_examples else 'medium',
+            'is_professional_query': len(detected_intents) > 0 or len(detected_domains) > 0
         }
     
     def enhance_context_with_analysis(self, question: str, context_docs: List) -> str:
         """
-        Enhance the context provided to the LLM with query analysis and guidance.
+        Enhance the context provided to the LLM with query analysis and guidance for Ashekur Rahman's personal assistant.
         
         This method:
-        1. Analyzes what the user is asking for
-        2. Examines what information is available in documents
-        3. Provides guidance to the LLM about when to use general knowledge
+        1. Analyzes what the user is asking about Ashekur
+        2. Examines what information is available in documents about his background
+        3. Provides guidance to the LLM about responding within professional scope
         
         Args:
             question (str): The user's question
@@ -459,80 +512,97 @@ RESPONSE:""",
         # Analyze the user's query
         query_analysis = self.analyze_query_intent(question)
         
-        # Analyze document content for topic coverage
+        # Analyze document content for Ashekur's professional information
         doc_topics = set()
         doc_content_summary = []
         
         for doc in context_docs:
             content = doc.page_content.lower()
             
-            # Extract topics mentioned in documents
+            # Extract topics mentioned in documents related to Ashekur's expertise
             for domain, keywords in {
-                'mobile': ['android', 'ios', 'mobile', 'app'],
-                'web': ['web', 'javascript', 'html', 'css', 'react'],
-                'api': ['api', 'rest', 'endpoint', 'request'],
-                'database': ['database', 'sql', 'query'],
-                'payment': ['payment', 'billing', 'transaction'],
-                'authentication': ['auth', 'login', 'oauth', 'token'],
-                'integration': ['integration', 'webhook', 'sdk']
+                'career': ['experience', 'career', 'work', 'professional', 'job', 'position'],
+                'frontend': ['react', 'javascript', 'typescript', 'frontend', 'ui', 'web'],
+                'backend': ['node.js', 'python', 'backend', 'server', 'api', 'database'],
+                'mobile': ['react native', 'mobile', 'app', 'ios', 'android'],
+                'gaming': ['goama', 'gaming', 'tournament', 'gogames', 'game'],
+                'leadership': ['team', 'lead', 'management', 'senior', 'mentor'],
+                'ai_ml': ['ai', 'ml', 'machine learning', 'langchain', 'rag'],
+                'projects': ['project', 'built', 'developed', 'created', 'portfolio'],
+                'achievements': ['achievement', 'success', 'performance', 'impact', 'users'],
+                'education': ['education', 'degree', 'university', 'computer science']
             }.items():
                 if any(keyword in content for keyword in keywords):
                     doc_topics.add(domain)
             
-            # Create content summary
+            # Create content summary focused on Ashekur's information
             doc_summary = {
                 'source': doc.metadata.get('source', 'Unknown'),
-                'has_code': 'code' in content or '```' in doc.page_content,
-                'has_examples': 'example' in content or 'tutorial' in content,
+                'has_career_info': any(keyword in content for keyword in ['experience', 'career', 'work', 'job']),
+                'has_technical_details': any(keyword in content for keyword in ['react', 'javascript', 'python', 'development']),
+                'has_project_info': any(keyword in content for keyword in ['project', 'built', 'developed', 'created']),
+                'has_achievements': any(keyword in content for keyword in ['achievement', 'success', 'users', 'performance']),
                 'length': len(doc.page_content),
                 'key_topics': [topic for topic in doc_topics if any(
                     keyword in content for keyword in {
-                        'mobile': ['android', 'ios'], 'web': ['javascript', 'react'],
-                        'api': ['api', 'endpoint'], 'payment': ['payment', 'billing']
+                        'career': ['experience', 'career'], 'frontend': ['react', 'javascript'],
+                        'leadership': ['team', 'lead'], 'gaming': ['goama', 'gaming']
                     }.get(topic, [])
                 )]
             }
             doc_content_summary.append(doc_summary)
         
-        # Create enhanced context guidance
+        # Create enhanced context guidance for personal assistant
         context_guidance = f"""
-QUERY ANALYSIS:
+QUERY ANALYSIS FOR ASHEKUR'S ASSISTANT:
 - Primary Intent: {query_analysis['primary_intent']}
-- Technical Domains: {', '.join(query_analysis['technical_domains']) if query_analysis['technical_domains'] else 'General'}
+- Professional Domains: {', '.join(query_analysis['professional_domains']) if query_analysis['professional_domains'] else 'General inquiry'}
+- Company Mentions: {', '.join(query_analysis['company_mentions']) if query_analysis['company_mentions'] else 'None'}
 - Needs Examples: {'Yes' if query_analysis['needs_examples'] else 'No'}
+- Is Professional Query: {'Yes' if query_analysis['is_professional_query'] else 'No'}
 - Complexity: {query_analysis['complexity']}
 
 DOCUMENT ANALYSIS:
-- Topics Covered: {', '.join(doc_topics) if doc_topics else 'General content'}
+- Professional Topics Covered: {', '.join(doc_topics) if doc_topics else 'General content'}
 - Total Chunks: {len(context_docs)}
-- Has Code Examples: {any(doc['has_code'] for doc in doc_content_summary)}
-- Has Tutorials: {any(doc['has_examples'] for doc in doc_content_summary)}
+- Has Career Info: {any(doc['has_career_info'] for doc in doc_content_summary)}
+- Has Technical Details: {any(doc['has_technical_details'] for doc in doc_content_summary)}
+- Has Project Info: {any(doc['has_project_info'] for doc in doc_content_summary)}
+- Has Achievements: {any(doc['has_achievements'] for doc in doc_content_summary)}
 
-HYBRID RESPONSE GUIDANCE:
+PERSONAL ASSISTANT RESPONSE GUIDANCE:
 """
         
-        # Determine response strategy based on analysis
-        if query_analysis['needs_examples'] and not any(doc['has_code'] for doc in doc_content_summary):
-            if any(domain in doc_topics for domain in query_analysis['technical_domains']):
-                context_guidance += """
-✅ SUPPLEMENT WITH EXAMPLES: Documents mention the topic but lack implementation details.
-   Provide relevant code examples and implementation guidance.
-   Clearly mark what comes from documents vs. general knowledge.
+        # Determine response strategy based on analysis for personal assistant context
+        if not query_analysis['is_professional_query']:
+            context_guidance += """
+❌ NON-PROFESSIONAL QUERY: Question is outside Ashekur's professional scope.
+   Politely decline and redirect to his career, technical expertise, or professional achievements.
+   Suggest relevant professional topics the user might be interested in.
 """
-            else:
-                context_guidance += """
-❌ STAY DOCUMENT-FOCUSED: Topic not clearly covered in documents.
-   Acknowledge limitation and suggest document-related questions.
+        elif query_analysis['needs_examples'] and any(doc['has_project_info'] for doc in doc_content_summary):
+            context_guidance += """
+✅ PROVIDE PROJECT EXAMPLES: Documents contain project information and user wants examples.
+   Share specific examples from Ashekur's projects, achievements, and technical work.
+   Highlight his contributions and the technologies he used.
+"""
+        elif len(context_docs) > 0 and any(doc['has_career_info'] or doc['has_technical_details'] for doc in doc_content_summary):
+            context_guidance += """
+✅ COMPREHENSIVE PROFESSIONAL RESPONSE: Good information available about Ashekur's background.
+   Provide detailed response about his career, skills, and experience based on available information.
+   Focus on his professional journey, technical expertise, and achievements.
 """
         elif len(context_docs) > 0:
             context_guidance += """
-✅ DOCUMENT-BASED RESPONSE: Sufficient information available in documents.
-   Focus on document content with minimal general knowledge supplementation.
+✅ BASIC PROFESSIONAL RESPONSE: Some information available about Ashekur.
+   Provide response based on available information about his background and expertise.
+   Be helpful within the scope of available professional information.
 """
         else:
             context_guidance += """
-❌ INSUFFICIENT CONTEXT: No relevant documents found.
-   Politely decline and suggest questions about document content.
+⚠️ LIMITED CONTEXT: No specific documents found about this aspect of Ashekur's background.
+   Provide general response about his known professional expertise and suggest more specific questions.
+   Focus on his core competencies: React.js, leadership, gaming platform development.
 """
         
         return context_guidance
@@ -646,22 +716,41 @@ HYBRID RESPONSE GUIDANCE:
         return enhanced_response
     
     def enhance_query(self, question: str) -> str:
-        """Enhance the query for better retrieval."""
-        # Add context keywords based on common document patterns
+        """Enhance the query for better retrieval about Ashekur Rahman's professional background."""
+        # Add context keywords based on Ashekur's professional information patterns
         enhanced_question = question
+        question_lower = question.lower()
         
-        # Add relevant keywords for better matching
-        if any(word in question.lower() for word in ['how', 'guide', 'tutorial', 'steps']):
-            enhanced_question += " instructions process steps"
+        # Add relevant keywords for better matching based on Ashekur's expertise
+        if any(word in question_lower for word in ['experience', 'background', 'career']):
+            enhanced_question += " professional experience career journey work history"
         
-        if any(word in question.lower() for word in ['what', 'definition', 'meaning']):
-            enhanced_question += " definition explanation overview"
+        if any(word in question_lower for word in ['skills', 'technologies', 'tech']):
+            enhanced_question += " React JavaScript TypeScript Node.js Python programming skills"
             
-        if any(word in question.lower() for word in ['integration', 'api', 'connect']):
-            enhanced_question += " integration API technical implementation"
+        if any(word in question_lower for word in ['projects', 'built', 'developed']):
+            enhanced_question += " projects portfolio GoGames tournament platform React Native"
             
-        if any(word in question.lower() for word in ['payment', 'billing', 'cost']):
-            enhanced_question += " payment billing cost pricing"
+        if any(word in question_lower for word in ['team', 'lead', 'management']):
+            enhanced_question += " team leadership management senior developer mentor"
+            
+        if any(word in question_lower for word in ['goama', 'gaming', 'tournament']):
+            enhanced_question += " Goama gaming platform tournament system development"
+            
+        if any(word in question_lower for word in ['react', 'javascript', 'frontend']):
+            enhanced_question += " React.js JavaScript TypeScript frontend development"
+            
+        if any(word in question_lower for word in ['python', 'backend', 'api']):
+            enhanced_question += " Python Node.js backend API development"
+            
+        if any(word in question_lower for word in ['education', 'degree', 'university']):
+            enhanced_question += " Computer Science Engineering education academic background"
+            
+        if any(word in question_lower for word in ['contact', 'hire', 'connect']):
+            enhanced_question += " contact information LinkedIn GitHub email social media"
+            
+        if any(word in question_lower for word in ['story', 'journey', 'started']):
+            enhanced_question += " personal story career journey gamer to developer passion"
             
         return enhanced_question
     
