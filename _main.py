@@ -9,7 +9,7 @@ from flask import Flask, jsonify, request, send_file, send_from_directory
 # Get your Gemini API key by:
 # - Selecting "Add Gemini API" in the "Firebase Studio" panel in the sidebar
 # - Or by visiting https://g.co/ai/idxGetGeminiKey
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAzbenL0ic4sltL1kENQPYVd8l_zNgPy1I"; 
+# os.environ["GOOGLE_API_KEY"] = ""; 
 
 app = Flask(__name__)
 
