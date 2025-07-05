@@ -8,6 +8,7 @@ langchain-google-genai # This package contains the LangChain integrations for th
 Pillow # PIL image-loading library
 flask
 flask-cors
+gunicorn # Production WSGI server
 
 # RAG System
 faiss-cpu # Vector store for similarity search (Windows-specific package)

@@ -19,7 +19,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    # cpus: 1.0
-    # mem_limit: 512m
-    # mem_reservation: 256m
-    command: python web_server.py
+    # Restart policy - always restart unless explicitly stopped
+    restart: unless-stopped
+    # Resource limits optimized for GCE e2-micro (1 vCPU, 1GB RAM)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.8'          # Leave some CPU for system processes
+          memory: 800M         # Leave ~200MB for system processes
+        reservations:
+          cpus: '0.2'
+          memory: 200M
+    # Use Gunicorn via Dockerfile CMD (production-ready)

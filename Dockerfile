@@ -32,4 +32,6 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /app /app
 
 EXPOSE 5000
-CMD ["python", "web_server.py"]
+
+# Use Gunicorn as the production WSGI server with configuration file
+CMD ["gunicorn", "--config", "gunicorn.conf.py", "wsgi:app"]

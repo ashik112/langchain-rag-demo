@@ -225,5 +225,5 @@ if __name__ == '__main__':
         debug=True, 
         threaded=True,
         use_reloader=True,
-        extra_files=['main.py', 'rag_system.py']
+        extra_files=['rag_system.py']
     ) 
