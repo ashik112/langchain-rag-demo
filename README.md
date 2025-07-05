@@ -1,111 +1,132 @@
 # LangChain RAG Demo
 
-A demo application that showcases the implementation of RAG (Retrieval-Augmented Generation) using LangChain.
+A simple, production-ready RAG system that works anywhere with minimal configuration.
 
-## Prerequisites
+## 🚀 Quick Start
 
-- Docker version 28.0.0 or higher
-- Docker Compose version 2.26.0 or higher
-- Python 3.11
-- Google API Key for Gemini AI
+1. **Clone and Setup**
+   ```bash
+   git clone <your-repo>
+   cd langchain-rag-demo
+   ```
 
-## Environment Setup
+2. **Configure (copy and edit)**
+   ```bash
+   cp config.env .env
+   # Edit .env and add your GOOGLE_API_KEY
+   ```
 
-1. Create a `.env` file in the project root directory:
-```bash
-cp .env.sample .env
-```
+3. **Add Your Documents**
+   - Place PDF, DOCX, or TXT files in the `assets/` directory
 
-2. Edit the `.env` file and add your Google API Key:
-```bash
-GOOGLE_API_KEY=your_google_api_key_here
-```
+4. **Start the Application**
+   ```bash
+   ./start.sh
+   ```
 
-## Running with Docker
+That's it! Open `http://localhost:5000` and start asking questions.
 
-### Build and Run
-
-```bash
-docker compose up --build
-```
-
-### Build Only
+## 🎯 Simple Commands
 
 ```bash
-docker compose build
+# Development (default)
+./start.sh
+
+# Production
+ENV=production ./start.sh
+
+# Small servers (e2-micro, etc.)
+ENV=micro ./start.sh
+
+# Docker
+ENV=docker ./start.sh
 ```
 
-### Run Only
+## 🔧 Configuration
+
+Edit your `.env` file:
 
 ```bash
-docker compose up
+# Required
+GOOGLE_API_KEY=your_key_here
+
+# Environment: development, production, micro, docker
+ENV=development
+
+# Port
+PORT=5000
+
+# For small servers, use:
+# ENV=micro
+# CPU_LIMIT=0.8
+# MEMORY_LIMIT=800M
 ```
 
-### Stop Containers
+## 🌐 Deploy Anywhere
+
+The system adapts automatically:
+
+- **Development**: Single worker, debug mode, hot reload
+- **Production**: Auto-scaling workers, optimized performance
+- **Micro**: 2 workers, reduced memory usage (perfect for e2-micro)
+- **Docker**: Containerized with proper resource limits
+
+## 📁 File Structure
+
+```
+├── main.py              # Flask application
+├── rag_system.py        # RAG logic
+├── wsgi.py              # WSGI entry point
+├── start.sh             # Universal start script
+├── gunicorn.conf.py     # Auto-configuring Gunicorn
+├── docker-compose.yml   # Environment-adaptive Docker
+├── config.env           # Configuration template
+└── assets/              # Your documents go here
+```
+
+## 🔄 Migration
+
+To move to a new server:
+
+1. Copy your files
+2. Install dependencies: `pip install -r requirements.txt`
+3. Set environment variables in `.env`
+4. Run: `./start.sh`
+
+## 🐳 Docker Deployment
 
 ```bash
-docker compose down
+# Copy config and start
+cp config.env .env
+# Edit .env with your settings
+docker-compose up --build -d
 ```
 
-### Access the Application
+## 🛠️ Development
 
-Once the containers are running, you can access the application at:
-- http://localhost:5000
+```bash
+# Auto-reload development server
+ENV=development ./start.sh
 
-## Docker Configuration Details
-
-### Dockerfile
-
-The Dockerfile uses a multi-stage build approach:
-1. Build stage (`builder`): Installs dependencies and builds the application
-2. Final stage (`app`): Creates a minimal production image
-
-### docker-compose.yml
-
-The docker-compose.yml file is configured with:
-- Port mapping: 5000:5000
-- Environment variables from .env file
-- Volume mounts for persistent storage
-- Resource limits and reservations
-- Healthcheck configuration
-
-## Project Structure
-
-```
-langchain-rag-demo/
-├── assets/           # Static assets
-├── faiss_index/      # FAISS index storage
-├── web/              # Frontend code
-├── .env              # Environment variables
-├── .gitignore        # Git ignore rules
-├── Dockerfile        # Docker configuration
-├── docker-compose.yml # Docker Compose configuration
-├── main.py           # Main application file
-├── requirements.txt  # Python dependencies
-└── web_server.py     # Web server implementation
+# Or traditional Flask
+python -m flask --app main run --debug
 ```
 
-## Troubleshooting
+## 📊 Monitoring
 
-### Common Issues
+```bash
+# Check status
+curl http://localhost:5000/api/sessions-info
 
-1. **Missing Google API Key**
-   - Ensure GOOGLE_API_KEY is set in your .env file
-   - Get your API key from https://g.co/ai/idxGetGeminiKey
+# View logs
+docker-compose logs -f  # Docker
+tail -f logs/app.log     # Local
+```
 
-2. **Docker Build Errors**
-   - Make sure you're using Docker 28.0.0 or higher
-   - Ensure all required system dependencies are installed
+## 🔧 Troubleshooting
 
-3. **Port Conflicts**
-   - If port 5000 is already in use, stop the conflicting service or modify the port mapping in docker-compose.yml
+- **Out of memory**: Use `ENV=micro`
+- **Slow responses**: Increase timeout in `gunicorn.conf.py`
+- **Port conflicts**: Change `PORT=8080` in `.env`
 
-## Security Notes
-
-- Never commit your .env file with real API keys
-- The .env file is already included in .gitignore
-- Use environment variables for sensitive information
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+Simple, adaptable, and ready for production! 🎉
