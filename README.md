@@ -99,7 +99,7 @@ To move to a new server:
 # Copy config and start
 cp config.env .env
 # Edit .env with your settings
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 ## 🛠️ Development
@@ -119,7 +119,7 @@ python -m flask --app main run --debug
 curl http://localhost:5000/api/sessions-info
 
 # View logs
-docker-compose logs -f  # Docker
+docker compose logs -f  # Docker
 tail -f logs/app.log     # Local
 ```
 

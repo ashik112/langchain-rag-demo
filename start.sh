@@ -36,7 +36,7 @@ case $ENV in
             gunicorn --config gunicorn.conf.py wsgi:app
         else
             echo "Using Docker..."
-            docker-compose up --build -d
+            docker compose up --build -d
         fi
         ;;
     micro)
@@ -51,12 +51,12 @@ case $ENV in
             gunicorn --config gunicorn.conf.py wsgi:app
         else
             echo "Using Docker..."
-            docker-compose up --build -d
+            docker compose up --build -d
         fi
         ;;
     docker)
         echo "🐳 Starting with Docker"
-        docker-compose up --build -d
+        docker compose up --build -d
         ;;
     *)
         echo "Unknown environment: $ENV"
