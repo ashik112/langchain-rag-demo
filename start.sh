@@ -1,21 +1,29 @@
 #!/bin/bash
 # Universal start script for LangChain RAG Demo
 
-# Set default environment if not specified
-export ENV=${ENV:-development}
-export PORT=${PORT:-5000}
-
-echo "🚀 Starting LangChain RAG Demo in $ENV mode on port $PORT"
-
 # Create .env file if it doesn't exist
 if [ ! -f .env ]; then
     echo "Creating .env file..."
     cat > .env << EOF
 # Add your environment variables here
 # GOOGLE_API_KEY=your_gemini_api_key_here
+ENV=development
+PORT=5000
 EOF
     echo "⚠️  Please add your GOOGLE_API_KEY to the .env file"
 fi
+
+# Load environment variables from .env file
+if [ -f .env ]; then
+    echo "📄 Loading configuration from .env file..."
+    export $(cat .env | grep -v '#' | grep -v '^$' | xargs)
+fi
+
+# Set default environment if not specified
+export ENV=${ENV:-development}
+export PORT=${PORT:-5000}
+
+echo "🚀 Starting LangChain RAG Demo in $ENV mode on port $PORT"
 
 # Choose startup method based on environment
 case $ENV in
